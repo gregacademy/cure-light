@@ -72,6 +72,20 @@
     {
       "if": { "properties": { "vector": { "const": "yagni" } }, "required": ["vector"] },
       "then": { "properties": { "id": { "pattern": "^Y-[0-9]+$" } } }
+    },
+    {
+      "if": {
+        "required": ["confirmation"],
+        "properties": { "confirmation": { "required": ["target"], "properties": { "target": { "const": "finding" } } } }
+      },
+      "then": { "properties": { "confirmation": { "required": ["proposal_sha256"] } } }
+    },
+    {
+      "if": {
+        "required": ["confirmation"],
+        "properties": { "confirmation": { "required": ["target"], "properties": { "target": { "enum": ["draft", "comment-section"] } } } }
+      },
+      "then": { "properties": { "confirmation": { "required": ["draft_sha256"] } } }
     }
   ]
 }

@@ -511,6 +511,14 @@ Rules (mandatory):
 - There is no producer-report, no prior-findings and no peer-verdict slot; the
   producer identity/model/reasoning/prompt/report and peer verdicts are withheld.
   No notebook access and no `units2/raw/occ-*.bin` reads.
+- Payload by surface: for `surface: text-stage` the text-stage payload is the
+  complete rendered draft (other clusters' verdicts withheld; the targets name the
+  assigned set); for `surface: early` the early payload withholds producer severity
+  and confidence labels and discloses only the assigned findings.
+- Accepted decisions: the complete relevant slice must be present and `none` must be
+  explicit; inaccessible relevant decisions return `inconclusive`.
+- Delta re-verification gets the full new draft + changed-fragment manifest + dependency set
+  and verdicts only the affected targets.
 - Try to refute each target as written; `default-refuted` is a burden-of-proof
   stance, never permission to convert missing access, timeouts or uncertainty
   into disproof.

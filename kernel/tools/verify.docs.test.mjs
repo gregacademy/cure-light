@@ -1729,3 +1729,289 @@ describe("docs contract — context budget S7 (gate receipts, opt-in)", () => {
     has(KICKOFF, "explicit frame confirmation", "first-frame confirmation preserved");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Finding confirmation (pilot) — RED-first contract pins (plan v3.6).
+//
+// These pin the two confirmation surfaces (early selective + text-stage), the
+// shared verifier binding, provenance-aware quote resolution, anti-slop rules,
+// delta re-verify identity + rebind, selection caps/routes and the optional
+// schema metadata. They are contract/fixture checks only — never proof that
+// agents obey prompts or that a semantic verdict is true. Every test name
+// carries the literal `finding confirmation` so the RED probe is greppable;
+// the authoritative RED is the full-file run (a no-match pattern false-GREENs).
+
+const CONFIRMATION = "kernel/references/finding-confirmation.md";
+
+const CONFIRMATION_OUTCOMES = [
+  "confirmed", "mechanism-confirmed", "adjudicated",
+  "refuted", "inconclusive", "disputed",
+  "pending", "not-required", "not-run",
+];
+
+// Test-only structural mini-validator: the schema has no production semantic
+// validator and `verify findings` does not exist. Conditionals are exercised
+// here; the real `verify.mjs` is untouched.
+function confirmationStructurallyValid(row) {
+  const conf = row.confirmation;
+  if (conf === undefined) return true; // old fixtures stay readable
+  if (conf === null || typeof conf !== "object") throw new Error("confirmation must be an object");
+  for (const field of ["target", "outcome", "run", "review_state", "subject_oid", "policy_ref"]) {
+    if (conf[field] === undefined) throw new Error(`confirmation missing structural field ${field}`);
+  }
+  if (!["finding", "draft", "comment-section"].includes(conf.target)) {
+    throw new Error(`confirmation target not allowed: ${conf.target}`);
+  }
+  if (!CONFIRMATION_OUTCOMES.includes(conf.outcome)) {
+    throw new Error(`confirmation outcome not allowed: ${conf.outcome}`);
+  }
+  return true;
+}
+
+describe("finding confirmation — shared verifier binding, slots, exclusions, verdict table last", () => {
+  it("finding confirmation — binding carries every required slot and the target inventory", () => {
+    has(CONFIRMATION, "## Shared verifier binding (one template, both surfaces)", "binding heading");
+    for (const slot of [
+      "target inventory",
+      "authorized scope and omissions",
+      "verbatim contract clauses",
+      "complete relevant `ACCEPTED-DECISIONS` slice",
+      "bounded artifact/source slices with refs and sha256",
+      "tools/research binding",
+      "budgets",
+      "child-exclusive output path",
+      "verdict vocabulary",
+    ]) has(CONFIRMATION, slot, `verifier binding slot ${slot}`);
+    has(CONFIRMATION, "target id, version, exact bytes or statement, paths/lines, subject path and OID + base OID", "target inventory detail");
+    has(CONFIRMATION, "no producer-report, no prior-findings and no peer-verdict slot", "withheld slots");
+  });
+
+  it("finding confirmation — binds one fresh non-producer child and excludes producer history and opaque reads", () => {
+    has(CONFIRMATION, "one fresh child per check", "one fresh child per check");
+    has(CONFIRMATION, "never a producer or co-producer", "never a producer");
+    has(CONFIRMATION, "no producer history, no nested workers", "no producer history");
+    has(CONFIRMATION, "no review-page access", "no review-page access");
+    has(CONFIRMATION, "never the notebook and never `units2/raw/occ-*.bin`", "opaque-read exclusion");
+    has(CONFIRMATION, "family diversity is best-effort", "family diversity best-effort");
+    has(CONFIRMATION, "record actual family or `unknown`", "family recorded, never inferred");
+    has(CONFIRMATION, "pauses — no substitution", "missing-group pause");
+  });
+
+  it("finding confirmation — makes the final per-target verdict table the only semantic verdict and caps the receipt", () => {
+    has(CONFIRMATION, "final `## Verdicts` table", "verdict table");
+    has(CONFIRMATION, "one row per assigned target", "one row per target");
+    has(CONFIRMATION, "no semantic verdict may appear earlier", "verdict-last ordering");
+    has(CONFIRMATION, "receipt is delivery-only", "delivery-only receipt");
+    has(CONFIRMATION, "4096 UTF-8 bytes", "receipt byte cap");
+    has(CONFIRMATION, "`status` values and `verify.mjs` schema are unchanged", "no tool schema change");
+  });
+
+  it("finding confirmation — renders the binding into the child template after the existing variants", () => {
+    has(CHILD_TEMPLATE, "Finding-confirmation verifier binding", "template binding section");
+    has(CHILD_TEMPLATE, "per-target verdict table comes last", "template verdict-last");
+    has(CHILD_TEMPLATE, "complete relevant `ACCEPTED-DECISIONS` slice", "template decisions slot");
+    has(CHILD_TEMPLATE, "confirmation research trace", "template research trace");
+    has(CHILD_TEMPLATE, "no producer-report", "template withheld inputs");
+  });
+
+  it("finding confirmation — links the reference from SKILL and names both placements", () => {
+    has(SKILL, "finding-confirmation.md", "SKILL reference link");
+    has(SKILL, "between vector aggregation and the vector gate", "early placement");
+    has(SKILL, "between drafting and the `before_post` gate", "text-stage placement");
+    has(SKILL, "opt-in pilot", "opt-in pilot");
+    has(SKILL, "preserve the three-vector identity", "three-vector identity preserved");
+  });
+});
+
+describe("finding confirmation — text-stage placement, full-draft target, draft ref/hash", () => {
+  it("finding confirmation — places text-stage checks between drafting and before_post with the full rendered draft as target", () => {
+    has(CONFIRMATION, "Text-stage checks run between coordinator drafting and the `before_post` gate", "text-stage timing");
+    has(CONFIRMATION, "complete rendered draft bytes", "full-draft bytes");
+    has(CONFIRMATION, "single aggregated draft artifact", "single draft artifact");
+    has(CONFIRMATION, "other clusters' verdicts are withheld", "peer-verdict withholding");
+    has(CONFIRMATION, "every text-stage child receives the complete rendered draft bytes", "full-draft disclosure");
+  });
+
+  it("finding confirmation — binds the confirmation to draft identity and the before_post acceptance rule", () => {
+    has(CONFIRMATION, "`draft_sha256`", "draft hash");
+    has(CONFIRMATION, "`proposal_sha256`", "proposal hash");
+    has(CONFIRMATION, "unresolved text-stage items block posting absent explicit operator acceptance", "posting gate");
+    has(CONFIRMATION, "`unconfirmed/operator-accepted`", "labeled acceptance");
+    has(EVIDENCE, "draft_sha256", "evidence draft hash");
+    has(EVIDENCE, "confirmed-only", "confirmed-only publication");
+  });
+
+  it("finding confirmation — adds the Output/drafting stage row plus KICKOFF/BOOTSTRAP/CHANGELOG wiring", () => {
+    has(CONTEXT_LOADING, "Output/drafting", "output stage row");
+    has(CONTEXT_LOADING, "kernel/references/finding-confirmation.md", "stage-map row load");
+    has(KICKOFF, "Finding confirmation", "KICKOFF opt-in field");
+    has(KICKOFF, "off | pilot", "KICKOFF mode values");
+    has(BOOTSTRAP, "kernel/references/finding-confirmation.md", "BOOTSTRAP fetch inventory");
+    has(CHANGELOG, "finding confirmation", "CHANGELOG entry");
+  });
+});
+
+describe("finding confirmation — delta re-verify, composition record, cosmetic rebind, version cap", () => {
+  it("finding confirmation — specifies the byte-level canonical content form and fail-closed canonicalization", () => {
+    has(CONFIRMATION, "`presentation_hash`", "presentation hash");
+    has(CONFIRMATION, "sha256 of exact fragment bytes", "presentation hash meaning");
+    has(CONFIRMATION, "`content_hash`", "content hash");
+    has(CONFIRMATION, "`fence_state_at_start`", "fence start state");
+    has(CONFIRMATION, "LF (`0x0A`) only", "LF-only split");
+    has(CONFIRMATION, "SP (`0x20`) and TAB (`0x09`)", "exact whitespace bytes");
+    has(CONFIRMATION, "protected ranges", "protected ranges");
+    has(CONFIRMATION, "fenced blocks", "fence protection");
+    has(CONFIRMATION, "≥4 space-equivalents", "indented-code guard");
+    has(CONFIRMATION, "disables canonicalization", "fail-closed disable");
+    has(CONFIRMATION, "no rebind is possible", "no rebind when disabled");
+  });
+
+  it("finding confirmation — fixes the rebind preconditions and the ≤3 text-version cap", () => {
+    has(CONFIRMATION, "canonicalization is enabled on both versions", "both enabled");
+    has(CONFIRMATION, "same `fence_state_at_start`", "same fence state");
+    has(CONFIRMATION, "`content_hash` values equal", "equal content hash");
+    has(CONFIRMATION, "≤3 text versions total", "version cap");
+    has(CONFIRMATION, "revert to the last fully verified version or escalate to the operator", "cap exhaustion");
+  });
+
+  it("finding confirmation — requires delta-only re-verification through the dependency closure and a whole-version composition record", () => {
+    has(CONFIRMATION, "delta only", "delta-only");
+    has(CONFIRMATION, "dependency closure", "dependency closure");
+    has(CONFIRMATION, "unknown coupling expands re-checking", "unknown coupling expanded");
+    has(CONFIRMATION, "composition record", "composition record");
+    has(CONFIRMATION, "ordered fragment list", "fragment ordering");
+    has(CONFIRMATION, "all fragments accounted", "all fragments accounted");
+    has(CONFIRMATION, "`old_presentation_hash` → `new_presentation_hash`", "rebind record");
+  });
+
+  it("finding confirmation — carries the same invalidation into closure and evidence docs", () => {
+    has(CLOSURE, "invalidates its confirmation", "closure invalidation");
+    has(CLOSURE, "never transferred", "badge transfer prohibition");
+    has(EVIDENCE, "state invalidation", "evidence invalidation");
+  });
+});
+
+describe("finding confirmation — anti-slop rules and provenance quote refs", () => {
+  it("finding confirmation — binds the checker to refutation, not authorship, with subtractive remedies first", () => {
+    has(CONFIRMATION, "the checker never authors", "no-authorship");
+    has(CONFIRMATION, "failing part and counterevidence only", "checker output shape");
+    has(CONFIRMATION, "subtractive remedies first", "subtractive preference");
+    has(CONFIRMATION, "additive text only with already-quoted validated evidence", "additive guard");
+    has(CONFIRMATION, "`inconclusive` is never `refuted`", "inconclusive is not refuted");
+    has(CONFIRMATION, "default-refuted", "burden-of-proof stance");
+    has(CONFIRMATION, "not permission to convert missing access, timeouts or uncertainty into disproof", "no uncertainty-as-disproof");
+  });
+
+  it("finding confirmation — resolves every quote at its recorded provenance and fails closed otherwise", () => {
+    has(CONFIRMATION, "`{side, oid, path, range|event, artifact_ref, sha256}`", "quote provenance shape");
+    has(CONFIRMATION, "fail closed", "fail-closed resolution");
+    has(CONFIRMATION, "cannot carry `confirmed` or `refuted`", "unresolvable quote");
+    has(CONFIRMATION, "degrades to `inconclusive`", "degrade to inconclusive");
+    has(CONFIRMATION, "never quote truth or search adequacy", "structural-check limit");
+    has(CONFIRMATION, "hallucinated counterexamples fail structurally", "hallucination guard");
+  });
+
+  it("finding confirmation — records adjudication telemetry for the false-flag rate", () => {
+    has(CONFIRMATION, "accepted/overruled", "adjudication telemetry");
+    has(CONFIRMATION, "false-flag rate", "false-flag metric");
+  });
+});
+
+describe("finding confirmation — early selection, caps, gate visibility, off/no-draft routes", () => {
+  it("finding confirmation — selects HIGH or thin-evidence V2/V3 findings with the pilot caps and exclusions", () => {
+    has(CONFIRMATION, "HIGH severity OR thin-evidence", "selection rule");
+    has(CONFIRMATION, "3–5 selected findings per vector", "findings cap");
+    has(CONFIRMATION, "1–2 cluster children", "children cap");
+    has(CONFIRMATION, "single anchor, no concrete failure mode, or no counter-check", "thin definition");
+    has(CONFIRMATION, "already adjudicated/closed items", "closed exclusion");
+    has(CONFIRMATION, "V1 claim-gap", "V1 exclusion");
+    has(CONFIRMATION, "yagni", "yagni exclusion");
+    has(CONFIRMATION, "lens-trail rows", "lens exclusion");
+  });
+
+  it("finding confirmation — keeps overflow pending and gate-visible, never silently skipped or cleared", () => {
+    has(CONFIRMATION, "overflow stays pending", "overflow pending");
+    has(CONFIRMATION, "never silently skipped", "no silent skip");
+    has(CONFIRMATION, "visible at the vector gate", "gate visibility");
+    has(CONFIRMATION, "cannot be presented as established facts", "unresolved early items");
+    has(CONFIRMATION, "no automatic second confirmer for HIGH", "no HIGH second pass");
+    has(CONFIRMATION, "one operational retry", "retry policy");
+  });
+
+  it("finding confirmation — documents the off / not-required / non-selected routes and the metadata honesty rule", () => {
+    has(CONFIRMATION, "`off` = not run (never \"independently confirmed\")", "off route");
+    has(CONFIRMATION, "`not-required`", "no-draft route");
+    has(CONFIRMATION, "absence of metadata never implies confirmation", "absence honesty");
+    has(CONFIRMATION, "never changes `review_basis` or `repair_required`", "no basis change");
+    has(EVIDENCE, "never implies confirmation", "evidence absence rule");
+  });
+
+  it("finding confirmation — hooks selection into the vector docs and the intake budget lines", () => {
+    has(IMPLEMENTATION, "provisional until", "implementation provisional");
+    has(IMPLEMENTATION, "early-selection", "implementation hook");
+    has(DEBT, "provisional until", "debt provisional");
+    has(DEBT, "early-selection", "debt hook");
+    has(INTAKE, "confirmation allocation", "intake allocation");
+    has(INTAKE, "paused overflow", "intake overflow");
+    has(PIPELINE, "finding confirmation", "pipeline sequencing");
+  });
+});
+
+describe("finding confirmation — target-class confirmation criteria", () => {
+  it("finding confirmation — defines confirmed per target class, never as one generic pass", () => {
+    has(CONFIRMATION, "confirmed` is defined per target class", "per-class definition");
+    has(CONFIRMATION, "mechanism, trigger and harm/future cost supported", "V2/V3 criteria");
+    has(CONFIRMATION, "V1-rendering", "V1-rendering class");
+    has(CONFIRMATION, "faithfully renders the recorded V1 finding/adjudication", "V1 criteria");
+    has(CONFIRMATION, "never re-adjudicates V1", "V1 containment");
+    has(CONFIRMATION, "process/count/coverage", "process class");
+    has(CONFIRMATION, "recorded artifacts", "process criteria");
+    has(CONFIRMATION, "Symbol impact/provenance", "symbol class");
+    has(CONFIRMATION, "recorded mechanical counts", "symbol criteria");
+    has(CONFIRMATION, "accepted-decision statement", "decision class");
+    has(CONFIRMATION, "accurate rendering", "decision criteria");
+  });
+
+  it("finding confirmation — points V1 and lens docs at the exclusion without adding a vector or lens", () => {
+    has(CONFORMANCE, "finding confirmation", "conformance pointer");
+    has(HYGIENE, "finding confirmation", "hygiene pointer");
+    has(PIPELINE, "no new lens", "pipeline no-new-lens");
+  });
+});
+
+describe("finding confirmation — schema outcome vocabulary and structural conditionals", () => {
+  it("finding confirmation — adds the optional typed confirmation object without touching the original required sets or enums", () => {
+    const schema = JSON.parse(read("assets/finding-schema.json"));
+    assert.deepEqual(schema.required, ["id", "vector", "summary", "severity", "status", "evidence"], "original required set unchanged");
+    assert.deepEqual(schema.properties.vector.enum, ["conformance", "implementation", "debt", "yagni"], "vector enum unchanged");
+    assert.ok(!schema.required.includes("confirmation"), "confirmation stays optional");
+    const conf = schema.properties.confirmation;
+    assert.ok(conf && conf.type === "object", "typed confirmation object");
+    const outcomes = [...conf.properties.outcome.enum];
+    for (const token of CONFIRMATION_OUTCOMES) assert.ok(outcomes.includes(token), `outcome vocabulary carries ${token}`);
+    assert.equal(outcomes.length, CONFIRMATION_OUTCOMES.length, "outcome vocabulary size");
+    for (const field of ["target", "outcome", "run", "review_state", "subject_oid", "policy_ref", "reason", "attempt_refs", "current_attempt_ref", "proposal_sha256", "draft_sha256"]) {
+      assert.ok(conf.properties[field], `confirmation field ${field}`);
+    }
+  });
+
+  it("finding confirmation — keeps old fixtures readable and validates conditionals with the test-only mini-validator", () => {
+    const schema = JSON.parse(read("assets/finding-schema.json"));
+    const conf = schema.properties.confirmation;
+    assert.ok(conf, "confirmation object exists before the validator runs");
+    for (const token of conf.properties.outcome.enum) assert.ok(CONFIRMATION_OUTCOMES.includes(token), `mini-validator vocabulary covers ${token}`);
+    const legacy = { id: "V2-1", vector: "implementation", summary: "s", severity: "MED", status: "open", evidence: { file: "a.mjs:1" } };
+    assert.equal(confirmationStructurallyValid(legacy), true, "legacy row without confirmation is compatible");
+    const bad = { ...legacy, confirmation: { target: "finding", outcome: "passed", run: "r", review_state: 1, subject_oid: "oid", policy_ref: "p" } };
+    assert.throws(() => confirmationStructurallyValid(bad), /outcome/, "wrong outcome token is rejected");
+    const draftTarget = { ...legacy, confirmation: { target: "draft", outcome: "pending", run: "r", review_state: 1, subject_oid: "oid", policy_ref: "p", draft_sha256: "x" } };
+    assert.equal(confirmationStructurallyValid(draftTarget), true, "draft target uses the draft hash");
+  });
+
+  it("finding confirmation — documents the documented overload and the absence rule in evidence-format", () => {
+    has(EVIDENCE, "optional `confirmation` metadata", "optional metadata");
+    has(EVIDENCE, "`target: finding`", "finding target");
+    has(EVIDENCE, "not new finding `status` values", "no status additions");
+    has(EVIDENCE, "absence never implies confirmation", "absence rule");
+  });
+});

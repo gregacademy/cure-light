@@ -1820,7 +1820,7 @@ describe("finding confirmation — shared verifier binding, slots, exclusions, v
     has(CHILD_TEMPLATE, "complete relevant `ACCEPTED-DECISIONS` slice", "template decisions slot");
     has(CHILD_TEMPLATE, "confirmation research trace", "template research trace");
     has(CHILD_TEMPLATE, "no producer-report", "template withheld inputs");
-    has(CHILD_TEMPLATE, "inaccessible relevant decisions", "template decision fail-closed");
+    has(CHILD_TEMPLATE, "missing or inaccessible relevant decisions", "template decision fail-closed");
   });
 
   it("finding confirmation — links the reference from SKILL and names both placements", () => {

@@ -33,11 +33,11 @@ Load each required section completely once per surviving context, then reference
 
 ### Section-residency inventory
 
-Before each stage, record an explicit active-section ranges/hash inventory: `{OID, path, section range, section hash, generation}` for every required section. On rehydration, rehydrate only complete active required sections and enforce the approved `(OID, path, section range/hash, generation)` load identity. A changed engine OID invalidates the cache: the engine OID change invalidates the cache. The V1 inventory contains only the vector template + invariants + coverage sections named in the stage map; **Do not read all 551 template lines during V1.** A section reference or a summary is not a substitute for the complete required section.
+Before each stage, record an explicit active-section ranges/hash inventory: `{OID, path, section range, section hash, generation}` for every required section. On rehydration, rehydrate only complete active required sections and enforce the approved `(OID, path, section range/hash, generation)` load identity; any engine OID change invalidates the cache. **Do not read all 551 template lines during V1.** The V1 inventory contains only the vector template + invariants + coverage sections named in the stage map. A section reference or a summary is not a substitute for the complete required section.
 
 ## Coordinator `context_budget` policy (pilot)
 
-This policy is operator-approved, NOT global defaults; it is a pilot allocation for a ~1M window. It belongs to the semantic frame; the operator approves values, the coordinator records phases/checkpoints, and the harness observes usage. These are pilot allocation choices for a ~1M window, not quality quotas or verifier limits. Smaller windows need operator-scaled values. The seal policy includes absolute tokens and the actual model window.
+This policy is operator-approved, NOT global defaults; these are pilot allocation choices for a ~1M window, not quality quotas or verifier limits. It belongs to the semantic frame; the operator approves values, the coordinator records phases/checkpoints, and the harness observes usage. Smaller windows need operator-scaled values. The seal policy includes absolute tokens and the actual model window.
 
 | Logical stage / segment | Target | Soft checkpoint | Hard HOLD |
 |---|---:|---:|---:|

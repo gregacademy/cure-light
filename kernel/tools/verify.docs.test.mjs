@@ -2088,7 +2088,10 @@ describe("docs contract — context budget v2: immutable composition, caps, and 
       "coordinator-owned bounded stage-record pages", "small state-head page lists ordered stage refs/hashes and sequence",
       "logical frame = sealed plan + this explicit composition", "each handoff loads only active records",
       "never overwrite the seal with hash-only text", "`frame_sha` stays the approved-plan SHA",
-      "every former frame field stays reachable and authoritative",
+      "every former frame field stays reachable and authoritative", "subject/base identity and changed files",
+      "contract/source pins and designation", "research binding/fallback", "chunker/verifier identities",
+      "claims/units/join refs", "every fleet plan/amendment", "P0 input budget, sweep, hard cases and source-consistency",
+      "`repair_required`, `review_basis`, and phase/checkpoint metrics",
     ]) has(NOTEBOOK_CONTRACT, phrase, `frame-composition clause ${phrase}`);
   });
 

@@ -10,6 +10,12 @@
 - **Semantic, not mechanical:** `verify.mjs` behavior, schemas, exit codes and written bytes are unchanged; no production semantic validator exists (the docs suite pins shape via a test-only mini-validator). Mechanical evidence pins stay a separate boundary.
 - **Wiring:** `kernel/SKILL.md`, `kernel/references/{pipeline-model,implementation-pass,debt-pass,evidence-format,intake-and-scope,conformance-pass,hygiene-lens,closure-verification,context-loading}.md`, `assets/child-pass-prompt-template.md`, `libs/pi-driver/{SKILL.md,references/notebook-plan-contract.md}`, `templates/KICKOFF.md`, `BOOTSTRAP.md`, `kernel/tools/verify.docs.test.mjs`.
 
+### 2026-10-14 — coordinator context-budget v2 docs
+
+- **Main-process budget policy.** Documents the pilot phase ceilings, two coordinator meters, safe checkpoints, HOLD/exception semantics, active-section residency, immutable seal composition, byte caps, single-emission/two-transit accounting, bounded trails, delegated preparation bridge, and the coordinator thinking pilot.
+- **No tool change.** `kernel/tools/verify.mjs` behavior, bytes, and exit codes are unchanged.
+- **Docs:** `kernel/references/context-loading.md`, `libs/pi-driver/references/notebook-plan-contract.md`, `kernel/references/conformance-pass.md`, `assets/child-pass-prompt-template.md`, `kernel/SKILL.md`, `libs/pi-driver/SKILL.md`, `templates/KICKOFF.md`, `kernel/tools/verify.docs.test.mjs`.
+
 ### 2026-10-06 — artifact contracts follow-up: join-draft units_manifest binding + quote containment (S38 repair loop)
 
 - **Join-draft `units_manifest` binding.** The join draft's own manifest binding is now documented as four fields (`ref`, `sha256`, `schema_version`, `unit_count`), distinguished from the envelope's three-field pin and from a box assignment's manifest pair; `unit_count` is the whole-manifest count, not the assigned subset. This closes the gap behind S38's `join.identity` failure (2 tool-source diagnosis children + 1 repair + 1 re-verify round) — the coordinator followed §5's "(ref/hash identity)" literally.

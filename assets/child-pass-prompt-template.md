@@ -192,6 +192,7 @@ as both claim and nonclaim. Absorb bounded within-/cross-source consistency:
 record witnessed contradictions/materiality and missing sources, never choose an
 unstated precedence or silently authorize a resource. Preserve source quotes.
 Return the artifact path and compact counts/hard cases, not a semantic verdict.
+Before returning: confirm every `sources[].source_ref` you declared resolves to a capture-manifest `sources[].locator`; a missing locator is a hard case to return (name the ref) — never edit the capture manifest yourself, the coordinator re-captures and re-pins it.
 ```
 
 This nested profile is the frozen `claims-draft/3` structural shape (the S28

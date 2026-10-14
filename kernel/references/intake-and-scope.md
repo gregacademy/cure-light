@@ -56,6 +56,8 @@ A pointer in the PR body, linked issue, or a locked decision may **explicitly de
 
 Capture the authorized sources verbatim, with exact-byte sha256 refs and version identity. Record `subject_oid` / `base_oid`, actual repo blob OIDs for selected in-diff sources (base blobs where delta interpretation needs them), source roles/designating pointers/selection rules, and timestamped PR body/issue snapshots. Source content comes from `git show <subject_oid>:<path>`, never a live edited checkout or the remote tip. A changed source version mid-state quarantines stale results and opens a new state at the operator gate — no mixed-source findings. The verbatim contract and capture refs remain authoritative; a drafted claim statement is not a replacement source.
 
+The coordinator authors and pins the capture manifest; before delegating P0.2 it registers every locator it prescribes there (locator completeness, artifact-contracts.md §1).
+
 ### P0.2 Claims pass (`#fast`)
 
 Read all captured, designated sources before inspecting delivery. Produce `claims-draft/3`: `sources`, `claims`, `nonclaims`, `conflicts`, `notes`, and structured `missing_source_candidates`. Each claim carries a run-scoped `id`, `statement`, `source_ref`, verbatim `quote`, and `also_in` source refs. Claims are promises or acceptance requirements: include a stated "Fixes X"; separate background defects, evidence and advisory discussion into nonclaims/notes, and never classify the same clause as both claim and nonclaim.
@@ -111,6 +113,14 @@ validates the manifest identity, the recorded chunker recipe/pins and the
 payload bytes (pins, byte lengths, counts, bounds and diff framing) against the
 recorded evidence slice; it never executes the chunker or git and never
 re-derives the unit inventory. A recorded diagnostic never gates acceptance.
+
+**Preflight before packing P0.4 (recommended, non-gating).** After P0.2 (and
+after P0.3), the recommended preflight is to run the pinned `verify claims` /
+`verify units` diagnostic through a delegated `fast` child before packing boxes:
+a nonzero result localizes the exact fingerprint while the producing context is
+still available for repair, avoiding a failed `verify join` round. It never
+gates by itself — the single delegated `verify join` remains the acceptance
+predicate, and a missing diagnostic stops nothing.
 
 ### P0.4 Join pass (`#fast`)
 

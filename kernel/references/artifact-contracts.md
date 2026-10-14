@@ -28,6 +28,8 @@ In every case, any declared value is refused by `verify envelope` (exit 2, `REFU
 
 **Path bases (the most common repair).** In a capture manifest, `path` and `title_path` resolve relative to `claims/` (the directory above `sources/`). In a claims draft, claims-draft `sources[].path` resolves relative to the run root. A path written with the wrong base fails `artifact.read`; the capture-side wrong-base fingerprint is `cannot read artifact: claims/claims/...`, and a claims-side path written capture-style resolves against the run root and misses.
 
+**Locator completeness.** The coordinator registers every `source_ref` it will prescribe to P0.2 as a `sources[].locator` before delegating; locators are unique. A declared `sources[].source_ref` with no matching locator is refused by `verify claims` as `source ref not captured: "<ref>"` and cannot be repaired by the claims child: the coordinator re-captures the missing source, re-pins the capture manifest and re-runs P0.2.
+
 <!-- capture-manifest-example -->
 ```json
 {
@@ -270,6 +272,8 @@ Per-box inputs and outputs (all pinned in `join_boxes`): `box-<id>.assignment.js
 | `input_ceiling_bytes` | yes | nonneg integer | approved pilot ceiling; must equal the `--input-ceiling-bytes` flag and the p05 evidence ceiling; generator: `input ceiling mismatch: "<box_id>"` |
 | `claims_list_bytes` | yes | nonneg integer | exact claims-list byte length; delegated join: `claims_list_bytes mismatch: "<box_id>"` |
 
+**Derived assignment fields (do not hand-compute).** The coordinator authors the assignment as a byte-level projection of artifacts that already exist. `units_dir` must equal the parent directory of the discovered `manifest_ref` — `units_dir == dirname(manifest_ref)`; a `units/units2/manifest.json` ref implies `units_dir: "units/units2"`, never `"units"`. `manifest_ref`, `manifest_sha256`, `unit_count`, `total_unit_bytes`, `claims_list_path` and `claims_list_bytes` are copied from the discovered manifest/claims-list bytes; `input_ceiling_bytes` is copied from the approved pilot value. A hand-authored field that disagrees is refused as `box assignment binding mismatch: "<box_id>"` (delegated join) or by the prep-level generator check.
+
 **Refusal order (generator).** Per box, the generator refuses the first failing check in this order: assignment is an object → `box_id` → `output_path` → manifest pair → `claims_list_path` → `units` array → input ceiling → instructions discovery → claims-list read → P0.5 discovery/read and evidence budget → box output read. `malformed assignment: "<ref>"` covers a non-object assignment, a missing/empty `claims_list_path`, or a non-array `units`; it names the file, not the offending key (key-level reporting is deferred). The table's "delegated join" checks run later, over the recorded envelope: the generator must pass first, and `verify join` re-binds the recorded facts — it never repairs them.
 
 Valid skeleton (synthetic; one unit per box for brevity):
@@ -353,10 +357,13 @@ Valid skeleton (synthetic; one unit per box for brevity):
 | `claims.conflicts`, `invalid conflict kind: "<id>": "<value>"` | `conflicts[].kind` not `within-source`/`cross-source` (structural enum; no semantic subtypes) | §2 |
 | `claims.conflicts`, `invalid conflict materiality: "<id>": "<value>"` | `conflicts[].materiality` not `material`/`non-material` | §2 |
 | `shape`, `invalid field: /conflicts/<i>/precedence expected nonempty string` | `conflicts[].precedence` missing/empty (use `"none"`) | §2 |
+| `claims.sources`, `source ref not captured: "<ref>"` | declared `sources[].source_ref` has no capture-manifest `sources[].locator` | §1, §2 |
 | `claims.quote`, `quote not in source: "<id>"` / `unknown source ref: "<ref>"` | claim/nonclaim quote not an exact byte substring of its declared source (or the ref is not captured) | §2 |
 | `claims.conflicts`, `quote not in source: "<conflict id>"` / `quote offset mismatch: "<conflict id>"` | conflict quote not contained, or non-null `offset_bytes` ≠ zero-based first-occurrence byte offset | §2 |
 | `claims.notes`, `note quote not in source: /notes/<i>` | note quote not contained in its paired source | §2 |
 | `claims.candidates`, `candidate quote not in captured sources: <i>` | `missing_source_candidates[].reference_quote` not contained in any captured source | §2 |
+
+Fingerprint note: `box assignment binding mismatch: "<box_id>"` is one coarse fingerprint covering box-count/identity binding, `output_path`, the `units_dir`/manifest/claims-list bindings and the `units[]` shape — it does not name the disagreeing field (key-level reporting is deferred; localize from the §5 field rules). `source ref not captured` (`claims.sources`) is distinct from `unknown source ref` (`claims.quote`): the first is a declared source with no manifest locator; the second is a quote/nonclaim/note/conflict item pointing at a ref that was never declared or captured.
 
 ## 8. Repair protocol — a distinct `fast` artifact-preparation/repair child
 

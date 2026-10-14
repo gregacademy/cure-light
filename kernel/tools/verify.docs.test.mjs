@@ -1306,6 +1306,15 @@ describe("docs contract — artifact contracts S2 follow-up (assignment / claims
     }
   });
 
+  it("documents the authoring preflights: locator completeness, derived assignment fields, coarse fingerprints, P0.4 preflight", () => {
+    has(ARTIFACT_CONTRACTS, "Locator completeness", "capture locator completeness rule");
+    has(ARTIFACT_CONTRACTS, "source ref not captured", "capture-side source-ref fingerprint");
+    has(ARTIFACT_CONTRACTS, "units_dir == dirname(manifest_ref)", "derived units_dir equality");
+    has(ARTIFACT_CONTRACTS, "coarse fingerprint", "coarse join.assignments fingerprint note");
+    has(CHILD_TEMPLATE, "never edit the capture manifest yourself", "claims-child capture-manifest read-only rule");
+    has(INTAKE, "Preflight before packing P0.4", "P0.4 preflight recommendation");
+  });
+
   it("drives the real envelope generator across the documented assignment refusal order", () => {
     const baseline = materializeRun("s37-asm-baseline");
     const baselineSeed = readJson(baseline, RUN_MANIFEST);

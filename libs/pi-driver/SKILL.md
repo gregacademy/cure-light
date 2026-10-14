@@ -39,4 +39,4 @@ Use the higher/current approved level for semantic blocks: source designation, c
 
 ## Durability note (mirrors PhormOS)
 
-The notebook advertises replay convenience, not a durability claim. The run frame and findings survive turns/compaction/handoff in the same pi installation; a fresh machine with no notebook history starts a new run (the manifest's subject OID in the frame is the continuity anchor, not the notebook).
+The notebook advertises replay convenience, not a durability claim. The run frame and findings survive turns/compaction/handoff in the same pi installation; a fresh machine with no notebook history starts a new run (the manifest's subject OID in the stage records is the continuity anchor, not the notebook).

@@ -809,7 +809,7 @@ describe("docs behavior — envelope prep mode + fail-closed rules (fix 4 docs)"
   it("KICKOFF §8 records envelope generation as coordinator prep before delegated verification", () => {
     has(KICKOFF, "`run-manifest.json` generation is coordinator prep via `verify envelope`", "envelope prep clause");
     has(KICKOFF, "(recording, not verification)", "recording clause");
-    has(KICKOFF, "envelope sha256 is frozen in the frame before verification", "frame freeze clause");
+    has(KICKOFF, "envelope sha256 is frozen in its bounded stage record before verification", "stage-record freeze clause");
     has(KICKOFF, "mechanical verification itself remains delegated `fast`", "delegated verification clause");
   });
 });
@@ -2112,6 +2112,20 @@ describe("docs contract — context budget v2: immutable composition, caps, and 
       "two transits, not zero-copy", "genuine correction makes a named new version",
       "bounded trail shards in `pr-<n>-review`", "every text-stage child still receives the full target draft via its pinned input",
     ]) has(NOTEBOOK_CONTRACT, phrase, `single-emission/trail clause ${phrase}`);
+  });
+});
+
+describe("docs contract — context budget v2: moved frame fields route to stage records", () => {
+  it("keeps pass docs and pre-pull rows off the immutable seal", () => {
+    for (const [file, phrase] of [
+      [INTAKE, "recorded in its bounded stage record (`fleet_plan`, state-head indexed"],
+      [INTAKE, "(same stage record)"],
+      [IMPLEMENTATION, "in its bounded stage record (state-head indexed) before any child spawns"],
+      [DEBT, "in its bounded stage record (state-head indexed) before any child spawns"],
+      [KICKOFF, "envelope sha256 is frozen in its bounded stage record before verification"],
+      [REQUIREMENTS, "record the fallback mechanism in the stage record"],
+      [PI_SKILL, "subject OID in the stage records is the continuity anchor"],
+    ]) has(file, phrase, `stage-record routing clause ${phrase}`);
   });
 });
 

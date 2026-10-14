@@ -49,13 +49,13 @@ closure and finalization can cite the accounting without loading every shard.
 
 ### Byte caps and single emission
 
-Count UTF-8 bytes, not characters. An ordinary ledger row ≤384 UTF-8 bytes; a ledger shard ≤16 KiB / 500 lines; a summary/index ≤12 KiB; combined V1 coverage + claims projection ≤80 KiB. The operator may approve a named larger allocation. The platform 50 KiB/2000-line limit stays an independent hard bound. Overflow splits or HOLDs, never truncates proof fields, never drops a unit; pending never becomes excluded.
+Count UTF-8 bytes, not characters. An ordinary ledger row ≤384 UTF-8 bytes; a ledger shard ≤16 KiB / 500 lines; a summary/index ≤12 KiB; combined V1 coverage + claims projection ≤80 KiB. The operator may approve a named larger allocation. The platform 50 KiB/2000-line limit stays an independent hard bound. Never truncate on overflow: overflow splits or HOLDs, never truncates proof fields, never drops a unit; pending never becomes excluded.
 
 Each page header binds complete identity/manifest/assignment/frozen-directory hashes. Use a deterministic evidence-ref dictionary instead of repeated prose. Long anchors/edges use linked continuation records or new shards. Full reports remain accessible through closure/finalization.
 
 Generate/freeze once; collect diagnostics as counts/refs, with no helper printing, no patch-with-echo, no re-cat of an unchanged body, no pretty-print/re-serialize of an authoritative artifact, and no printing a whole multi-page bundle. On the by-value interface, one page-body read + one exact write remains unavoidable: call it two transits, not zero-copy. Necessary seal/readback remains. A genuine correction makes a named new version.
 
-Bounded trail shards in `pr-<n>-review` cover V2/V3 review-check/lens/research trails and confirmation attempts: refs/counts, current finding rows, and gate-visible pending/refuted/disputed limits. Do not re-paste every historical attempt or full rendered draft. Required final draft/confirmation bytes stay pinned in the artifact store; every text-stage child still receives the full target draft via its pinned input.
+Coordinator-owned bounded trail shards in `pr-<n>-review` cover V2/V3 review-check/lens/research trails and confirmation attempts: refs/counts, current finding rows, and gate-visible pending/refuted/disputed limits. Do not re-paste every historical attempt or full rendered draft. Required final draft/confirmation bytes stay pinned in the artifact store; every text-stage child still receives the full target draft via its pinned input.
 
 ## Content rules
 

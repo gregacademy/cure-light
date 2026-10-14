@@ -34,6 +34,10 @@
 
 Required groups are binding: a group that is absent or degenerate (present but cannot resolve to a usable model/group) pauses the affected stage — no substitution (no inherited parent, `planner`/`coder`, or other group).
 
+## 4b. Finding confirmation (opt-in pilot)
+
+- [ ] Enable finding confirmation (`finding_confirmation.mode: off | pilot`) — independent adversarial checks of selected HIGH/thin V2/V3 findings (pre-gate) and of the rendered draft (pre-`before_post`); confirmed-only publication, no fourth vector (finding-confirmation.md)
+
 ## 5. Draft policy (never auto-post otherwise)
 
 > Finalization = one aggregated review comment per run (summary, findings,

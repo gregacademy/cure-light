@@ -120,6 +120,8 @@ table, at its own severity.
 
 ## Aggregation + disposition
 
+**Finding confirmation (pilot).** When `finding_confirmation.mode: pilot`, V2 bug-table hypotheses stay provisional until the vector's early-selection check reconciles them (finding-confirmation.md): after aggregation, HIGH or thin-evidence findings are selected (3–5 per vector, 1–2 cluster children) and adversarially checked before the gate. The early-selection hook creates no new gate, never changes `review_basis`/`repair_required`, and keeps unresolved items gate-visible; selected findings publish confirmed-only.
+
 The coordinator segments findings into:
 
 1. **Scope route** per evidence-format.md (External routing):

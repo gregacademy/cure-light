@@ -1742,6 +1742,7 @@ describe("docs contract — context budget S7 (gate receipts, opt-in)", () => {
 // the authoritative RED is the full-file run (a no-match pattern false-GREENs).
 
 const CONFIRMATION = "kernel/references/finding-confirmation.md";
+const HYGIENE = "kernel/references/hygiene-lens.md";
 
 const CONFIRMATION_OUTCOMES = [
   "confirmed", "mechanism-confirmed", "adjudicated",

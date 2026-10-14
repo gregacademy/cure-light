@@ -36,7 +36,25 @@
         "note": { "type": "string" }
       }
     },
-    "linked": { "type": ["string", "null"] }
+    "linked": { "type": ["string", "null"] },
+    "confirmation": {
+      "type": "object",
+      "description": "Optional confirmation-pilot metadata (kernel/references/finding-confirmation.md). Absence never implies confirmation; never a finding status; verify.mjs is unchanged.",
+      "required": ["target", "outcome", "run", "review_state", "subject_oid", "policy_ref"],
+      "properties": {
+        "target": { "enum": ["finding", "draft", "comment-section"], "description": "finding = this schema row; draft/comment-section records share the shape of confirmation-trail entries, not finding-schema instances" },
+        "outcome": { "enum": ["confirmed", "mechanism-confirmed", "adjudicated", "refuted", "inconclusive", "disputed", "pending", "not-required", "not-run"] },
+        "run": { "type": "string" },
+        "review_state": { "type": "integer" },
+        "subject_oid": { "type": "string" },
+        "proposal_sha256": { "type": "string", "description": "Digest of the exact proposed target bytes (finding target)" },
+        "draft_sha256": { "type": "string", "description": "Exact rendered-draft digest (draft/comment-section target or an attempt binding)" },
+        "policy_ref": { "type": "string" },
+        "reason": { "type": "string" },
+        "attempt_refs": { "type": "array", "items": { "type": "string" } },
+        "current_attempt_ref": { "type": "string" }
+      }
+    }
   },
   "allOf": [
     {

@@ -114,6 +114,7 @@ never clear).
 - **Claim × implementation/test matrix** — the semantic product: every claim marked `backed` / `unbacked` / `contradicted` with evidence, claim IDs and small coverage refs/counts.
 - **Coverage ledger** — per-unit states, attribution edges, ranges, exclusions, recipe: coordinator-owned notebook coverage pages (notebook-plan-contract.md) — never scratch files, never rendered whole at the gate.
 - **V2 projection** — Vector 2 consumes a paged, bounded **matrix projection**: adjudicated claims/invariants with anchors and the relevant coverage refs and uncertainty — not the ledger bulk.
+- **Confirmation (pilot) exclusion** — early and text-stage finding confirmation (finding-confirmation.md) never selects V1 claim-gap/unclaimed-delivery rows, and a V1-rendering check only verifies that drafted sentences faithfully render the recorded adjudication — it never re-adjudicates V1 or reopens a finalized UNCLAIMED.
 
 A thin or empty contract stops deeper planning at the gate: request author scope, or run an explicitly limited V1-only review; never fabricate a claim or silently launch an open-ended file sweep. Unclaimed units are disclosed as accounting, not automatically bug-reviewed or declared wrong.
 

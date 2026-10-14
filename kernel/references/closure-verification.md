@@ -36,6 +36,8 @@ For every open finding (and every `deferred-decision` the implementer claims to 
 
 Contract repair re-enters the loop the same way — as a new state with a new contract snapshot, not an in-place reconciliation. Prior evidence stays historically cited (its own `subject_oid`/source hash), never silently closed; **code-unchanged findings stay open unless specifically reclassified on valid new authority** — a body/spec repair never counts as fixing code. When the doc/spec unit is itself the designated deliverable, its closure is judged on its own anchor evidence (recaptured contract + the actual doc delta), not as a "doc-only" acknowledgement of an implementation finding.
 
+**Confirmation badges.** Any edit to a verified target invalidates its confirmation, and a new or repaired state invalidates its confirmation: applicability is re-decided on the new state's pins, and a confirmation badge from an earlier version is never transferred (finding-confirmation.md). Ordinary `verified-fixed` closure remains its own distinct check.
+
 ## 5. Publish a closure table
 
 ```text
@@ -61,6 +63,7 @@ section; old-state counts are never carried into a new-state comment.
 - **Unchanged code cannot be green.** A "fixed" claim with no diff = re-open.
 - **Do not present decision-deferrals as fixes.** "Locked as intentional" is a decision, not a fix — record it and surface the decision author to the operator.
 - **Do not resurrect closed-by-operator items** unless the operator reopens them or new evidence clearly falls outside the suppression scope.
+- **Do not re-raise closed decisions through confirmation.** A confirmation check on a statement covered by a recorded accepted decision returns `adjudicated`; the confirmer never challenges the decision itself, and never re-raises it unless the recorded rationale no longer holds (finding-confirmation.md).
 - **Doc/test-only closures are acknowledged as such**, so the operator knows the behavior itself is untouched — and a contract-only repair never flips a code finding green.
 - **A fresh manifest per state; no inherited negatives.** A contract-only repair or any new state recaptures sources and records fresh claim/join refs/hashes, P0.5 sweep evidence and V1 validation. Re-verify the shipped chunker path/sha256/recipe against the recorded cure-light source identity. Old draft links, candidate-unclaimed lists, zero-error reports and final negatives never count as coverage of the new contract; only identity-checked mechanical unit inputs may be reused.
 

@@ -22,6 +22,7 @@ A **diagnostic review, not a fixer.** cure-light reviews a PR against its own st
 11. [references/evidence-format.md](references/evidence-format.md) — finding schema, severity, origin
 12. [references/chhound-driver.md](references/chhound-driver.md) — the chunkhound research rail (pi-chhound plugin): sandbox pull, MCP connect, tool names, the symbol-sweep preflight recipe, discovery-only rule
 13. [references/chunker.md](references/chunker.md) — shipped Phase-0 unit chunker, CLI/IO, recipe and limits
+14. [references/finding-confirmation.md](references/finding-confirmation.md) — the opt-in finding-confirmation pilot: early selective checks + text-stage draft confirmation, shared verifier binding, delta re-verify
 
 Read [libs/pi-driver/SKILL.md](../libs/pi-driver/SKILL.md) only if this runtime provides the pi session notebook; its references define the requirements check and the notebook plan contract.
 
@@ -66,10 +67,10 @@ Intake → Requirements check (pre-pull rows; subject-tree rows defer to Phase 0
     → [gate: subject/base reality, source + claims/unit/join refs/hashes, counts, exclusions/budgets, hard cases; repair defaults to pause before V1]
   → Vector 1 conformance (flash; validate/freeze claims, adjudicate claims, account for all units, finalize UNCLAIMED) → [gate: review_basis + repair status]
   → Deterministic preflight (type/dead + the state's symbol map)
-  → Vector 2 implementation (code-review) → [gate]
-  → Vector 3 debt (code-review) → [gate]
+  → Vector 2 implementation (code-review) → [early confirmation (pilot)] → [gate]
+  → Vector 3 debt (code-review) → [early confirmation (pilot)] → [gate]
   → Optional yagni pass (code-review; over-engineering/YAGNI — operator-enabled, fresh-context post-handoff) → [gate]
-  → Output (one operator-gated review comment) → [closure loop on deliberate re-pull]
+  → Output (one operator-gated review comment; text-stage confirmation (pilot) between drafting and `before_post`) → [closure loop on deliberate re-pull]
 ```
 
 Each vector is a **fleet pass** with a defined split, per-child prompt contract (assets/child-pass-prompt-template.md), evidence return format (evidence-format.md), and aggregation rule. Truncated or timed-out child output is `inconclusive`, never a pass.
@@ -102,7 +103,8 @@ Publish a closure table. See closure-verification.md.
 - **Partial coverage is stated honestly.** Mechanical enumeration and accounting are always complete for a complete-coverage claim; semantic residue and any accepted partial review are reported with their limits and require explicit operator acceptance at the gate (conformance-pass.md).
 - **Closure discloses coverage gaps.** A closure re-review surfaces newly added unexplained ranges outside finding-touched paths, or states plainly that Vector 1 coverage was not re-run — it never claims new full coverage from old dispositions (closure-verification.md).
 - **Pre-existing vs PR-introduced is a first-class classification**, decided by base-diff, not vibes — and scope routes the comment: introduced-or-enforced items are addressed, never deferred downstream; out-of-scope items are only recommended or suggested.
-- **Never draft external artifacts automatically.** The single review comment is operator-gated; the `before_post` gate is mandatory whenever drafting is enabled.
+- **Never draft external artifacts automatically.** The single review comment is operator-gated; the `before_post` gate is mandatory whenever drafting is enabled — and in `pilot` mode the text-stage finding confirmation runs **between drafting and the `before_post` gate**, with unresolved items blocking posting absent explicit operator acceptance (finding-confirmation.md).
+- **Finding confirmation is an opt-in pilot overlay — no fourth vector.** With `finding_confirmation.mode: pilot`, selected HIGH/thin V2/V3 findings are adversarially confirmed **between vector aggregation and the vector gate**, and the rendered draft is confirmed **between drafting and the `before_post` gate** (finding-confirmation.md). It must preserve the three-vector identity, the frozen fleet groups and `verify.mjs` behavior; it never changes `review_basis`/`repair_required`, never launders absence or `inconclusive` into a pass, and publishes confirmed-only.
 - **Deferred is not closed.** Record it in the decisions page with rationale.
 - **Phase 0 produces drafts and checked leads, not verdicts.** Sources → claims (`#fast`) → shipped chunker → join (`#fast`, JSONL) → delegated `verify join` (the single mechanical boundary, after merge prepared; it re-runs the claims and units validators internally as fatal prerequisites) → coordinator P0.5 semantic gate consuming the pinned verdict. `verify claims` / `verify units` stay available as optional diagnostics (repair-loop localization, per-class receipts) and their absence never gates. The frame binds artifact refs/hashes, the chunker and the verifier pin to the state's source identity. The verifier runs read-only over the run artifacts — no subject read, no git/network, no run-authored checks — and the coordinator never re-implements or reruns the verifier's checks. Pack full claims + whole units by input length only; no unit-count cap or output reservation. Appends are optional, JSONL mandatory; validate exact paths and the complete unit sweep, recover truncation under the approved retry/re-split policy, and disclose residue. P0 emits candidate-unclaimed only; V1 alone finalizes UNCLAIMED after validating/freezing the claims and checking alternate attribution. No canonical plugin IDs, census denominator or gate_check permission remains ([intake-and-scope.md](references/intake-and-scope.md)).
 - **Fleets are budgeted and parallel.** Cap children, timeouts, output; a split's compiled children spawn as one concurrent batch, never one child after another, and no coordinator write shares a spawn batch — notebook writes serialize via the coordinator, before the batch or after the returns. Each vector's split is a recorded `fleet_plan` (facet → owner → minimum depth budget) compiled before its children spawn and surfaced at that vector's gate; no facet is folded into another child silently, and any amendment is recorded with a reason ([intake-and-scope.md](references/intake-and-scope.md)).

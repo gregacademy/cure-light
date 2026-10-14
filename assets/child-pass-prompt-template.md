@@ -483,3 +483,62 @@ runs its own census; symbol coverage never clears V1 attribution or vice versa.
 ### Shadow control (only when the operator opts in)
 
 When the manifest sets `research.shadow: on` for a split, the coordinator additionally spawns one control child with the direct-tree variant (Variant B), prefixed `SHADOW CONTROL — your output is compared for measurement only and excluded from the review.` Its findings never enter aggregation; the comparison lands in the Vector-2/3 compliance record.
+
+### Finding-confirmation verifier binding (pilot; appended after the variants above)
+
+When `finding_confirmation.mode: pilot`, the coordinator renders this block for each
+confirmation check — early (between vector aggregation and the vector gate) or
+text-stage (between drafting and the `before_post` gate). Fill every slot; never
+restate producer prose, and never edit the P0 profile block above.
+
+```text
+FINDING-CONFIRMATION VERIFIER BINDING
+surface: early | text-stage
+targets (exactly the assigned set):
+  - {target id} v{version}: <exact bytes or statement> — {paths/lines} — subject {SUBJECT_OID} / base {BASE_OID}
+authorized scope and omissions: ...
+verbatim contract clauses: ...
+complete relevant `ACCEPTED-DECISIONS` slice (`none` must be explicit): ...
+bounded artifact/source slices with refs and sha256: [{ref, sha256, slice}] ...
+tools/research binding: ...
+budgets: ...
+child-exclusive output path: {output_path}
+verdict vocabulary: confirmed | mechanism-confirmed | adjudicated | refuted | inconclusive | disputed
+```
+
+Rules (mandatory):
+
+- There is no producer-report, no prior-findings and no peer-verdict slot; the
+  producer identity/model/reasoning/prompt/report and peer verdicts are withheld.
+  No notebook access and no `units2/raw/occ-*.bin` reads.
+- Try to refute each target as written; `default-refuted` is a burden-of-proof
+  stance, never permission to convert missing access, timeouts or uncertainty
+  into disproof.
+- Evidence quotes carry `{side, oid, path, range|event, artifact_ref, sha256}`; an
+  unresolvable quote cannot carry `confirmed`/`refuted` (fail closed to
+  `inconclusive`).
+- The checker never authors: failing part and counterevidence only; prefer
+  subtractive remedies; `inconclusive` is never `refuted`.
+- Report order: identity/digest → evidence/quotes → counterchecks and boundaries →
+  decision applicability → independent impact/origin → missing inputs/trace →
+  verdicts. The per-target verdict table comes last — one row per assigned target;
+  no semantic verdict may appear earlier.
+- Receipt: bounded JSON `{status,counts,finding_ids,artifact_ref,sha256}` plus
+  `run, review_state, subject_oid, assignment_digest`, capped at 4096 UTF-8 bytes;
+  `status` is delivery-only.
+
+Close with the confirmation research trace:
+
+```text
+CONFIRMATION RESEARCH TRACE
+mode: chhound-rail | direct-tree
+tools-invoked-first-use: <exact names in order>
+tool-call-count: <n>
+daemon-query-ready: true | false | error
+orientation-question: <one line or n/a>
+search-log: <type + query per call, first-use order>
+search-call-count: <n>
+counterexample-attempt: <what was tried for each target>
+verified-correlated-sites: <path:line list, or checked-none>
+fallback/error: none | <exact reason>
+```

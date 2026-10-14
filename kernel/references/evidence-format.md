@@ -29,12 +29,15 @@ status: open | verified-fixed | re-classified | test-only | doc-only | deferred-
 owner: <implementer | operator | subsystem>
 subject_oid: <tree OID this row's evidence was read from>   # optional in schema; the coordinator fills it on every new/updated row
 linked: <external follow-up URL | none>
+confirmation: <optional confirmation-pilot object — see below; never a finding status>   # optional
 ```
 
 `assets/finding-schema.json` is the machine form. `lens` and `lens-checked`
 are optional (a conformance finding usually has `lens: none`); when they are
 absent the row still counts toward the vector, but the **lens matrix** (see
 pipeline-model.md) is what proves per-lens coverage of the run.
+
+**Confirmation metadata (optional).** A finding row may carry an optional `confirmation` metadata object (the confirmation pilot, finding-confirmation.md): `target: finding` for finding rows; `draft` / `comment-section` records use the same shape as confirmation-trail entries, not as finding-schema instances. Fields: `target` (`finding | draft | comment-section`), `outcome` (`confirmed | mechanism-confirmed | adjudicated | refuted | inconclusive | disputed | pending | not-required | not-run`), `run`, `review_state`, `subject_oid`, `proposal_sha256` or `draft_sha256`, `policy_ref`, `reason`, `attempt_refs[]`, `current_attempt_ref`. This adds **not new finding `status` values** and leaves `verify.mjs` untouched; existing enums and required sets are unchanged, and absence never implies confirmation. A draft-target record carries the exact `draft_sha256` of the verified draft. **state invalidation** — any edit to the verified target, or a new or revised state, invalidates the badge, which is never transferred to another version.
 
 **Coverage is not a taxonomy.** Vector 1 keeps per-unit accounting in the
 coverage ledger (notebook pages, below); only two narrow kinds become findings:
@@ -130,7 +133,7 @@ Vector-2 and Vector-3 children attach a RESEARCH TRACE footer (implementation-pa
 - `symbol-map-<owner>-<pr>-s<n>` — the preflight symbol map (chhound-driver.md, Symbol sweep): selected symbols, census heat table, capped outside locations, provenance/caps. One per review state; a bounded state cache kept while the state's consumers run (V2 sweep, V3 seed, yagni), discarded when the state closes.
 - `coverage-<owner>-<pr>-s<n>` — Vector 1 coverage summary/index: denominator and counts by state and side, completion flags, exclusion classes/policy, exact refs to the ledger shards. The paged ledger records themselves live in `coverage-<owner>-<pr>-s<n>-p<k>` pages (bounded, coordinator-owned, **in-notebook** — never scratch files); workers read only their assigned pages/slices. Kept through the state's closure/finalization window, retired after durable snapshots land.
 - `claims-<owner>-<pr>-s<n>` — the source-bound claim directory: Phase-0 claims-draft ref/hash and proposed claims/nonclaims/notes/conflicts/missing sources, then V1 validation/freeze evidence and the resulting directory ref/hash. Preserve source class/designating pointer/interpretation and source-consistency witness records. Draft IDs are run-scoped; no plugin permission or canonical registry projection is required. The complete V1 directory remains queryable (paged `-p<k>` when long); an inaccessible or incomplete directory cannot support finalized negative attribution.
-- `pr-<n>-review` — findings table (schema rows) + closure table + the Vector-2 review-check outcome trail (`checked-and-clear` | `advisory` | `question` | `finding`, implementation-pass.md; `question` outcomes are mirrored to the decisions page). Appended per vector.
+- `pr-<n>-review` — findings table (schema rows) + closure table + the Vector-2 review-check outcome trail (`checked-and-clear` | `advisory` | `question` | `finding`, implementation-pass.md; `question` outcomes are mirrored to the decisions page) + the confirmation trail (proposals, attempts, verdicts, dismissals, disagreements, rebind records; coordinator-owned, distinct from the lens/V1 coverage trails). Appended per vector.
 - `decisions` (durable, survives the PR) — deferred-decision and closed-by-operator records with author/time/rationale/scope, plus V2 review-check `question` outcomes and the leading subarea open questions.
 
 The coordinator owns writes. Children return compact records; they never race the notebook.
@@ -168,6 +171,7 @@ The single review comment contains:
 - **Coverage accounting renders in Summary; confirmed unclaimed delivery renders in Findings.** `EXPLAINED` / `EXCLUDED` / `UNRESOLVED` totals, exclusion classes and honest limits stay in the summary and the coverage pages; grouped `unclaimed-delivery` rows are in-scope, blocking, to be addressed — never follow-ups. No fourth comment section.
 
 - **Never auto-post.** The single draft is operator-gated at the `before_post` pause — mandatory whenever `draft_comment` is enabled — and the operator may edit or veto it.
+- **Confirmation is confirmed-only.** In `finding_confirmation.mode: pilot`, selected V2/V3 findings and draft claims enter Findings/follow-ups only when confirmed; unresolved text-stage items block posting absent explicit named operator acceptance (labeled `unconfirmed/operator-accepted`, disclosed in the Summary) — never laundered as confirmed. Coverage, resolved limits and unresolved counts are stated in the Summary; no new comment section.
 - **Lens-trail rows stay in the notebook** (hygiene / blast / quality / yagni) and are never included in the comment; the one exception is the mechanical `Symbol impact` table — outside-occurrence counts with census scope, provenance, and caps (chhound-driver.md, Symbol sweep), never a row's advisory judgment.
 - **Issues are suggested, not drafted.** cure-light never composes `gh issue` bodies; a developer may open follow-up issues from the "Potential follow-up issues" section. A `linked` value may be added later, when a developer or operator has created the issue.
 - **Attribution footer.** The single review comment ends with the cure-light attribution footer, composed **solely from run-manifest values**:

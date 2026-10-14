@@ -91,6 +91,9 @@ the findings page, not the bug/debt table:
 - The operator may suppress individual lens hits (recorded `closed-by-operator`),
   but never the lens itself. Deterministic `type`/`dead` hits are surfaced to the
   implementer with the mechanical citation — opinion is not the basis.
+- **finding confirmation (pilot) exclusion.** Pure lens-trail rows (hygiene
+  included) are never confirmation targets (finding-confirmation.md); a lens hit is
+  not a bug/debt finding, and confirmation never converts one.
 
 ## Cross-cutting rules
 

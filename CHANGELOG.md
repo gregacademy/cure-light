@@ -2,6 +2,14 @@
 
 ## Unreleased (working tree)
 
+### 2026-10-14 — finding confirmation pilot: early + text-stage adversarial confirmation (docs/schema only)
+
+- **Two surfaces, no fourth vector.** A pilot overlay adds selective adversarial checks of HIGH/thin V2/V3 findings between vector aggregation and the vector gate, and sentence-level checks of the rendered draft between drafting and `before_post`; opt-in via `finding_confirmation.mode: off | pilot`, confirmed-only publication, fail-closed unresolved routes. `kernel/references/finding-confirmation.md` is the normative reference.
+- **Shared verifier binding** (one template, both surfaces) with a per-target verdict table last, provenance-aware quote resolution, anti-slop rules, delta re-verify + byte-level canonical content-hash/rebind rules and a ≤3 text-version cap.
+- **Schema:** an optional `confirmation` metadata object on finding rows (no new `status` values, no required-set change, old fixtures readable) in `assets/finding-schema.json` + `kernel/references/evidence-format.md`.
+- **Semantic, not mechanical:** `verify.mjs` behavior, schemas, exit codes and written bytes are unchanged; no production semantic validator exists (the docs suite pins shape via a test-only mini-validator). Mechanical evidence pins stay a separate boundary.
+- **Wiring:** `kernel/SKILL.md`, `kernel/references/{pipeline-model,implementation-pass,debt-pass,evidence-format,intake-and-scope,conformance-pass,hygiene-lens,closure-verification,context-loading}.md`, `assets/child-pass-prompt-template.md`, `libs/pi-driver/{SKILL.md,references/notebook-plan-contract.md}`, `templates/KICKOFF.md`, `BOOTSTRAP.md`, `kernel/tools/verify.docs.test.mjs`.
+
 ### 2026-10-06 — artifact contracts follow-up: join-draft units_manifest binding + quote containment (S38 repair loop)
 
 - **Join-draft `units_manifest` binding.** The join draft's own manifest binding is now documented as four fields (`ref`, `sha256`, `schema_version`, `unit_count`), distinguished from the envelope's three-field pin and from a box assignment's manifest pair; `unit_count` is the whole-manifest count, not the assigned subset. This closes the gap behind S38's `join.identity` failure (2 tool-source diagnosis children + 1 repair + 1 re-verify round) — the coordinator followed §5's "(ref/hash identity)" literally.

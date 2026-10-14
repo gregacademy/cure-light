@@ -30,22 +30,23 @@ These seed the session so it can compile the review process. Fetch them in order
 14. `$RAW_BASE/kernel/references/context-loading.md` — boot set + stage map + read-once rule
 15. `$RAW_BASE/kernel/references/artifact-contracts.md` — recorded artifact field contracts + repair map
 16. `$RAW_BASE/kernel/references/chunker.md` — the shipped Phase-0 unit chunker (CLI/IO, recipe, limits)
+17. `$RAW_BASE/kernel/references/finding-confirmation.md` — the opt-in finding-confirmation pilot (early selective + text-stage checks)
 
 ### Pi driver (notebook + handoff + model-groups binding — only if this runtime provides the pi notebook)
 
-17. `$RAW_BASE/libs/pi-driver/SKILL.md`
-18. `$RAW_BASE/libs/pi-driver/references/requirements-check.md`
-19. `$RAW_BASE/libs/pi-driver/references/notebook-plan-contract.md`
+18. `$RAW_BASE/libs/pi-driver/SKILL.md`
+19. `$RAW_BASE/libs/pi-driver/references/requirements-check.md`
+20. `$RAW_BASE/libs/pi-driver/references/notebook-plan-contract.md`
 
 ### Templates / assets (keep for reference during the episode)
 
-20. `$RAW_BASE/templates/KICKOFF.md`
-21. `$RAW_BASE/assets/finding-schema.json`
-22. `$RAW_BASE/assets/child-pass-prompt-template.md`
+21. `$RAW_BASE/templates/KICKOFF.md`
+22. `$RAW_BASE/assets/finding-schema.json`
+23. `$RAW_BASE/assets/child-pass-prompt-template.md`
 
 ### Worked example (optional, read after compiling the process)
 
-23. `$RAW_BASE/docs/example-review.md`
+24. `$RAW_BASE/docs/example-review.md`
 
 ## Fetching rules
 

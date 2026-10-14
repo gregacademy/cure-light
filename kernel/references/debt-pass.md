@@ -69,6 +69,8 @@ The terminal return is wrapped by the bounded return transport (4096 UTF-8 bytes
 
 ## Aggregation + disposition
 
+**Finding confirmation (pilot).** V3 debt hypotheses stay provisional until the vector's early-selection check reconciles them (finding-confirmation.md): after aggregation, HIGH or thin-evidence debt findings are selected (3–5 per vector, 1–2 cluster children) and adversarially checked before the gate. The early-selection hook creates no new gate and never presents unconfirmed debt as established; selected findings publish confirmed-only.
+
 The coordinator groups findings:
 
 1. **Concept-level finding + concrete future failure.**

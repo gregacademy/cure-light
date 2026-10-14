@@ -22,9 +22,12 @@ Intake → Phase 0:
   → P0.5 coordinator gate → capacity-bounded split → [operator gate: manifest]
   → Vector 1 (validate/freeze claims; claim adjudication + unit accounting; finalize UNCLAIMED)
   → [gate: review_basis + repair status] → Deterministic preflight
-  → Vector 2 → Vector 3 → Output (single review comment)
+  → Vector 2 → Vector 3 → Output (single review comment; text-stage confirmation between drafting and `before_post`)
   → Closure loop (deliberate re-pull or contract repair)
 ```
+
+With `finding_confirmation.mode: pilot`, each of Vector 2 and Vector 3 gains an early
+finding confirmation pass between vector aggregation and the vector gate.
 
 A provisional `repair_required` from P0.2 defaults to pause before V1; only the existing named, bounded operator exception may cross that boundary.
 
@@ -45,6 +48,7 @@ A provisional `repair_required` from P0.2 defaults to pause before V1; only the 
 9. **Vector 1 coverage is a frame assertion, separate from the lens table.** The run must map an owner for every claim and every eligible changed unit (intake-and-scope.md §0.3); the lens table proves only that each active lens has an owning pass. A claim or unit without an owner is a frame error, like an unowned lens.
 10. **Contract adequacy gates continuation.** The bounded source-consistency work within the P0.2 claims pass pauses the run before Vector 1 on a witnessed material contradiction unless the operator records a named evidence-only V1 authorization (intake-and-scope.md §0.2/§0.4); any other `repair_required` defect (missing designation/orientation) defaults to the same repair pause. After Vector 1 the coordinator records `review_basis` (`ready` / `limited-only` / `blocked` / `unknown`) plus any outstanding `repair_required` status before the V1 gate (conformance-pass.md). Sources enter the contract only by explicit designation; convention interprets, never authorizes. A contract repair — including a body-only edit with an unchanged subject OID — is a new review state, never an in-place reconciliation. This is a gate classification, not a fourth vector, lens, finding kind or comment section.
 11. **Mechanical checks and semantic judgments are separate records.** The shipped chunker establishes a state-bound unit inventory; P0.4 proposes witnessed links and P0.5 checks typed rows, identities, duplicates, witnesses, budgets and the complete assigned sweep. Links are leads, never verdicts. No plugin grants canonical claim identities or permission to finalize negatives. V1 validates/freezes the draft claims against sources, adjudicates claims, accounts for all units and alone finalizes UNCLAIMED. Source coherence, designation and `review_basis` remain evidenced agentic judgments. **Gate timing:** source and draft/unit/join refs/hashes plus P0.5 evidence exist before the Phase-0 gate; neither a successful mechanical gate nor a zero-link row proves contract adequacy or negative attribution ([intake-and-scope.md](intake-and-scope.md) §0.2–§0.4).
+12. **Finding confirmation is an opt-in pilot overlay — a semantic companion, not a fourth vector.** With `finding_confirmation.mode: pilot`, selected HIGH/thin V2/V3 findings receive an independent adversarial check between vector aggregation and the vector gate, and the rendered draft is checked between drafting and `before_post` (finding-confirmation.md). It creates **no new lens**, no new comment section and no gate semantics; it never changes `review_basis`/`repair_required` and publishes confirmed-only. The pilot forecast is ≈48.9% of the lens+drafter stage (row-consistent field denominator) — tight against the ≤50% keep-pilot threshold and unvalidated.
 
 ## The research accelerator (cross-cutting; Vector 2 + Vector 3)
 

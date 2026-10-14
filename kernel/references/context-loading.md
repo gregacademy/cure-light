@@ -24,6 +24,7 @@ Nothing outside the active stage's row is loaded at that stage.
 | V2 | `kernel/references/implementation-pass.md`; `kernel/references/blast-lens.md`; hygiene if not resident; the symbol sweep/research/fallback sections of `kernel/references/chhound-driver.md` even for the direct-tree recipe; template Variant A/review checks; bounded prior projections | read actual source evidence normally |
 | V3 | `kernel/references/debt-pass.md`; `kernel/references/quality-lens.md`; needed hygiene/research sections; template Variant C; bounded V1/V2 projections | the independent lead thread is unchanged |
 | Optional yagni | `kernel/references/yagni-pass.md` plus its template slots and required evidence/lens refs | only if the operator selected the pass |
+| Output/drafting | `kernel/references/finding-confirmation.md` + `kernel/references/evidence-format.md` if not resident | text-stage confirmation between drafting and `before_post`; early confirmation checks load `kernel/references/finding-confirmation.md` at each vector's own stage |
 | Closure | `kernel/references/closure-verification.md`; `kernel/references/evidence-format.md` if not resident | `docs/example-review.md` is optional on explicit need, never compulsory boot |
 
 ## Read-once rule

@@ -2038,3 +2038,93 @@ describe("finding confirmation — schema outcome vocabulary and structural cond
     has(EVIDENCE, "absence never implies confirmation", "absence rule");
   });
 });
+
+describe("docs contract — context budget v2: coordinator policy and section residency", () => {
+  it("pins the operator-approved pilot ceilings, two meters, HOLD, and safe checkpoints", () => {
+    for (const phrase of [
+      "pilot allocation choices for a ~1M window", "operator-approved, NOT global defaults",
+      "Boot + frame compile/seal | ≤60K | 60K | 75K",
+      "P0 preparation/join/gate | ≤130K | 150K | 180K",
+      "V1 setup/freeze/dispatch/terminal receipts | ≤120K | 130K | 160K",
+      "V1 reconciliation + ledger + vector gate, after resume when needed | ≤110K | 120K | 150K",
+      "Preflight + V2, including enabled early confirmation | ≤110K | 120K | 150K",
+      "V3, including enabled early confirmation | ≤110K | 120K | 150K",
+      "Optional yagni | ≤90K | 100K | 130K",
+      "Output/draft + enabled text confirmation | ≤90K | 100K | 130K",
+      "Closure state/delta cycle | ≤110K | 120K | 150K",
+      "latest request `input + cacheRead + cacheWrite`", "phase-added content/transport plus total coordinator request traffic and output/thinking usage, across ALL generations",
+      "Child `details.stats` is not parent context", "a context reset does not eliminate emitted bytes", "char/4 estimates explicitly",
+      "finish the current block, stop starting new large blocks, write a checkpoint", "HOLD, only bounded checkpoint/error reporting",
+      "recorded exception/continuation segment", "never evidence truncation, dropped work, or manufacturing pass/partial-coverage acceptance",
+      "P0 checkpoint after source/claims/unit preparation and before join dispatch", "V1 checkpoint after all terminal fleet receipts and before reconciliation/materialization",
+      "Never hand off during an unresolved spawn batch", "parallel spawn-only batching stays binding",
+      "same-state handoff never re-pulls/rebuilds the subject or inherits a fresh semantic verdict", "20–35K reload is an allocation estimate", "never as a content saving",
+      "phase, generation, peak, context before/after checkpoint, engine/state identity, warnings/exceptions, next-task refs",
+    ]) has(CONTEXT_LOADING, phrase, `context-budget policy clause ${phrase}`);
+  });
+
+  it("requires active-section inventory and rejects the V1 full-template read", () => {
+    for (const phrase of [
+      "active-section ranges/hash inventory", "(OID, path, section range/hash, generation)",
+      "rehydrate only complete active required sections", "Do not read all 551 template lines during V1", "engine OID change invalidates the cache",
+    ]) has(CONTEXT_LOADING, phrase, `section-residency clause ${phrase}`);
+  });
+
+  it("records the operator-sealed coordinator thinking pilot without rebinding fleets", () => {
+    for (const [file, phrase] of [
+      [SKILL, "operator-sealed coordinator-only allocation"], [PI_SKILL, "higher/current approved level for semantic blocks"],
+      [KICKOFF, "supported lower level only for fetching/hashing, field copying, bounded slice selection, rendering, promotion and receipt bookkeeping"],
+      [SKILL, "switching recorded and restored before any semantic block"], [PI_SKILL, "never a silent model/group substitution"],
+      [KICKOFF, "Fleet and confirmation groups unchanged"], [SKILL, "if the harness cannot switch between prompts/turns, skip and report no saving"],
+      [PI_SKILL, "retained transcript reasoning is not removed"],
+    ]) has(file, phrase, `thinking-policy clause ${phrase}`);
+  });
+});
+
+describe("docs contract — context budget v2: immutable composition, caps, and single emission", () => {
+  it("keeps the immutable seal authoritative through stage-record composition", () => {
+    for (const phrase of [
+      "original sealed `pipeline-frame-…` body retained unchanged", "literal verifier-child contract and immutable approved plan",
+      "coordinator-owned bounded stage-record pages", "small state-head page lists ordered stage refs/hashes and sequence",
+      "logical frame = sealed plan + this explicit composition", "each handoff loads only active records",
+      "never overwrite the seal with hash-only text", "`frame_sha` stays the approved-plan SHA",
+      "every former frame field stays reachable and authoritative",
+    ]) has(NOTEBOOK_CONTRACT, phrase, `frame-composition clause ${phrase}`);
+  });
+
+  it("enforces UTF-8 row, shard, index, and V1 projection caps without truncation", () => {
+    for (const phrase of [
+      "ordinary ledger row ≤384 UTF-8 bytes", "ledger shard ≤16 KiB / 500 lines", "summary/index ≤12 KiB",
+      "combined V1 coverage + claims projection ≤80 KiB", "platform 50 KiB/2000-line limit stays an independent hard bound",
+      "overflow splits or HOLDs, never truncates proof fields", "pending never becomes excluded",
+      "page header binds complete identity/manifest/assignment/frozen-directory hashes", "deterministic evidence-ref dictionary",
+      "linked continuation records or new shards",
+    ]) has(NOTEBOOK_CONTRACT, phrase, `ledger-cap clause ${phrase}`);
+  });
+
+  it("documents single emission honestly and keeps V2/V3 trails bounded", () => {
+    for (const phrase of [
+      "Generate/freeze once", "no helper printing, no patch-with-echo, no re-cat of an unchanged body",
+      "no pretty-print/re-serialize of an authoritative artifact", "one page-body read + one exact write remains unavoidable",
+      "two transits, not zero-copy", "genuine correction makes a named new version",
+      "bounded trail shards in `pr-<n>-review`", "every text-stage child still receives the full target draft via its pinned input",
+    ]) has(NOTEBOOK_CONTRACT, phrase, `single-emission/trail clause ${phrase}`);
+  });
+});
+
+describe("docs contract — context budget v2: delegated preparation bridge", () => {
+  it("makes fast preparation file-only while retaining coordinator semantic ownership", () => {
+    for (const phrase of [
+      "no coordinator-authored per-run renderer/heredoc", "distinct `fast` preparation role", "candidate page files only, ≤4096-byte refs",
+      "never writes notebook pages", "no source-diagnosis privilege", "coordinator reviews all required source records, seals the projection input and promotes once",
+      "coordinator retains source designation/precedence, repair approval, merge ownership and semantic P0.5", "no new packer or validator",
+      "audit repair attempts and stop/escalate unresolved ambiguity", "Join stays the sole mechanical acceptance boundary",
+    ]) has(CONFORMANCE, phrase, `preparation bridge clause ${phrase}`);
+  });
+
+  it("gives the assigned preparation child bounded, non-adjudicative scope", () => {
+    for (const phrase of [
+      "assigned preparation child", "candidate page files + bounded refs only", "no adjudication", "coordinator-owned promotion",
+    ]) has(CHILD_TEMPLATE, phrase, `preparation-child clause ${phrase}`);
+  });
+});

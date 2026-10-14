@@ -124,7 +124,7 @@ search thread).
 3. Evidence = file:line in the subject tree, plus base evidence for origin (Vector 2+).
 4. No **unrouted** style nits, no redesign, no unrequested tests. Style hits go to the lens trail.
 5. Explicitly label `NOT-A-BUG` when a checked suspicion clears — that keeps the coordinator from re-checking.
-6. Return compact records; do not write the notebook (coordinator owns writes).
+6. Return compact records; do not write the notebook (coordinator owns writes). An assigned preparation child has candidate page files + bounded refs only; it performs no adjudication and uses coordinator-owned promotion. It never writes notebook pages or adjudicates source meaning, attribution, exclusions, or acceptance.
 7. When {research_protocol} is present, run it and close with the RESEARCH TRACE footer; a missing trace is `inconclusive`, never a pass.
 8. Vector 1: close with `CLOSE <assignment digest> — processed n/total`. An absent unit, digest mismatch, or missing claim verdict stays unresolved; `NONE` never substitutes for accounting. The complete claim directory must be queryable before any negative attribution — read the scope you need; insufficient access means `UNRESOLVED`, not `UNCLAIMED`. Use the V1-validated/frozen directory and its source evidence ({claim_basis_ref}); P0.5 success or draft links alone never authorize negative attribution. Insufficient validation or access leaves affected units `UNRESOLVED`. Before returning `UNCLAIMED_CANDIDATE`, check every qualifying designated in-diff clause; a doc/spec unit is explained only through `documents/specifies` against an independent purpose/target anchor (conformance-pass.md).
 

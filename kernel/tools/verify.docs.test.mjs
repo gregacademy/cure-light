@@ -512,7 +512,7 @@ describe("docs contract — fleet plans (experimental)", () => {
     has(DEBT, "at most two debt axes unless the plan records why", "V3 cap");
     has(DEBT, "at least two distinct search calls and one recorded evidence artifact (file:line) per owned axis/lens", "V3 depth budget");
     has(CLOSURE, "plan-vs-actual fleet check", "closure check");
-    has(NOTEBOOK_CONTRACT, "per-vector `fleet_plan`", "frame field");
+    has(NOTEBOOK_CONTRACT, "per-vector `fleet_plan`", "stage-record frame field");
     has(SKILL, "recorded `fleet_plan`", "SKILL rule");
     has(PIPELINE, "recorded `fleet_plan`", "pipeline rule");
   });

@@ -14,7 +14,7 @@
 
 - **Main-process budget policy.** Documents the pilot phase ceilings, two coordinator meters, safe checkpoints, HOLD/exception semantics, active-section residency, immutable seal composition, byte caps, single-emission/two-transit accounting, bounded trails, delegated preparation bridge, and the coordinator thinking pilot.
 - **No tool change.** `kernel/tools/verify.mjs` behavior, bytes, and exit codes are unchanged.
-- **Docs:** `kernel/references/context-loading.md`, `libs/pi-driver/references/notebook-plan-contract.md`, `kernel/references/conformance-pass.md`, `assets/child-pass-prompt-template.md`, `kernel/SKILL.md`, `libs/pi-driver/SKILL.md`, `templates/KICKOFF.md`, `kernel/tools/verify.docs.test.mjs`.
+- **Docs:** `kernel/references/context-loading.md`, `libs/pi-driver/references/notebook-plan-contract.md`, `kernel/references/conformance-pass.md`, `kernel/references/intake-and-scope.md`, `kernel/references/implementation-pass.md`, `kernel/references/debt-pass.md`, `libs/pi-driver/references/requirements-check.md`, `assets/child-pass-prompt-template.md`, `kernel/SKILL.md`, `libs/pi-driver/SKILL.md`, `templates/KICKOFF.md`, `kernel/tools/verify.docs.test.mjs`.
 
 ### 2026-10-06 — artifact contracts follow-up: join-draft units_manifest binding + quote containment (S38 repair loop)
 

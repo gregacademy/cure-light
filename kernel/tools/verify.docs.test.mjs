@@ -1766,6 +1766,12 @@ function confirmationStructurallyValid(row) {
   if (!CONFIRMATION_OUTCOMES.includes(conf.outcome)) {
     throw new Error(`confirmation outcome not allowed: ${conf.outcome}`);
   }
+  if (conf.target === "finding" && conf.proposal_sha256 === undefined) {
+    throw new Error("confirmation finding target missing proposal_sha256");
+  }
+  if (conf.target !== "finding" && conf.draft_sha256 === undefined) {
+    throw new Error("confirmation draft target missing draft_sha256");
+  }
   return true;
 }
 
@@ -1785,6 +1791,7 @@ describe("finding confirmation — shared verifier binding, slots, exclusions, v
     ]) has(CONFIRMATION, slot, `verifier binding slot ${slot}`);
     has(CONFIRMATION, "target id, version, exact bytes or statement, paths/lines, subject path and OID + base OID", "target inventory detail");
     has(CONFIRMATION, "no producer-report, no prior-findings and no peer-verdict slot", "withheld slots");
+    has(CONFIRMATION, "missing or inaccessible relevant decisions make the target `inconclusive`", "decision fail-closed");
   });
 
   it("finding confirmation — binds one fresh non-producer child and excludes producer history and opaque reads", () => {
@@ -1813,6 +1820,7 @@ describe("finding confirmation — shared verifier binding, slots, exclusions, v
     has(CHILD_TEMPLATE, "complete relevant `ACCEPTED-DECISIONS` slice", "template decisions slot");
     has(CHILD_TEMPLATE, "confirmation research trace", "template research trace");
     has(CHILD_TEMPLATE, "no producer-report", "template withheld inputs");
+    has(CHILD_TEMPLATE, "inaccessible relevant decisions", "template decision fail-closed");
   });
 
   it("finding confirmation — links the reference from SKILL and names both placements", () => {
@@ -1831,6 +1839,8 @@ describe("finding confirmation — text-stage placement, full-draft target, draf
     has(CONFIRMATION, "single aggregated draft artifact", "single draft artifact");
     has(CONFIRMATION, "other clusters' verdicts are withheld", "peer-verdict withholding");
     has(CONFIRMATION, "every text-stage child receives the complete rendered draft bytes", "full-draft disclosure");
+    has(CHILD_TEMPLATE, "text-stage payload is the complete rendered draft", "template text-stage payload");
+    has(CHILD_TEMPLATE, "early payload withholds producer severity and confidence", "template early payload");
   });
 
   it("finding confirmation — binds the confirmation to draft identity and the before_post acceptance rule", () => {
@@ -1883,6 +1893,8 @@ describe("finding confirmation — delta re-verify, composition record, cosmetic
     has(CONFIRMATION, "ordered fragment list", "fragment ordering");
     has(CONFIRMATION, "all fragments accounted", "all fragments accounted");
     has(CONFIRMATION, "`old_presentation_hash` → `new_presentation_hash`", "rebind record");
+    has(CONFIRMATION, "full new draft + changed-fragment manifest + dependency set", "delta payload");
+    has(CHILD_TEMPLATE, "full new draft + changed-fragment manifest + dependency set", "template delta payload");
   });
 
   it("finding confirmation — carries the same invalidation into closure and evidence docs", () => {
@@ -1954,6 +1966,7 @@ describe("finding confirmation — early selection, caps, gate visibility, off/n
     has(DEBT, "early-selection", "debt hook");
     has(INTAKE, "confirmation allocation", "intake allocation");
     has(INTAKE, "paused overflow", "intake overflow");
+    has(INTAKE, "`fleet_plan.confirmation`", "confirmation plan record");
     has(PIPELINE, "finding confirmation", "pipeline sequencing");
   });
 });
@@ -1994,6 +2007,11 @@ describe("finding confirmation — schema outcome vocabulary and structural cond
     for (const field of ["target", "outcome", "run", "review_state", "subject_oid", "policy_ref", "reason", "attempt_refs", "current_attempt_ref", "proposal_sha256", "draft_sha256"]) {
       assert.ok(conf.properties[field], `confirmation field ${field}`);
     }
+    const conditionals = (schema.allOf ?? []).filter((entry) => entry.if?.properties?.confirmation);
+    const draftCond = conditionals.find((entry) => JSON.stringify(entry.if.properties.confirmation.properties.target).includes("draft"));
+    assert.ok(draftCond?.then?.properties?.confirmation?.required?.includes("draft_sha256"), "draft target requires draft_sha256");
+    const findingCond = conditionals.find((entry) => entry.if.properties.confirmation.properties.target?.const === "finding");
+    assert.ok(findingCond?.then?.properties?.confirmation?.required?.includes("proposal_sha256"), "finding target requires proposal_sha256");
   });
 
   it("finding confirmation — keeps old fixtures readable and validates conditionals with the test-only mini-validator", () => {
@@ -2007,6 +2025,10 @@ describe("finding confirmation — schema outcome vocabulary and structural cond
     assert.throws(() => confirmationStructurallyValid(bad), /outcome/, "wrong outcome token is rejected");
     const draftTarget = { ...legacy, confirmation: { target: "draft", outcome: "pending", run: "r", review_state: 1, subject_oid: "oid", policy_ref: "p", draft_sha256: "x" } };
     assert.equal(confirmationStructurallyValid(draftTarget), true, "draft target uses the draft hash");
+    const findingTarget = { ...legacy, confirmation: { target: "finding", outcome: "pending", run: "r", review_state: 1, subject_oid: "oid", policy_ref: "p", proposal_sha256: "x" } };
+    assert.equal(confirmationStructurallyValid(findingTarget), true, "finding target uses the proposal hash");
+    const unboundDraft = { ...legacy, confirmation: { target: "draft", outcome: "pending", run: "r", review_state: 1, subject_oid: "oid", policy_ref: "p" } };
+    assert.throws(() => confirmationStructurallyValid(unboundDraft), /draft_sha256/, "unbound draft target is rejected");
   });
 
   it("finding confirmation — documents the documented overload and the absence rule in evidence-format", () => {

@@ -516,7 +516,7 @@ Rules (mandatory):
   assigned set); for `surface: early` the early payload withholds producer severity
   and confidence labels and discloses only the assigned findings.
 - Accepted decisions: the complete relevant slice must be present and `none` must be
-  explicit; inaccessible relevant decisions return `inconclusive`.
+  explicit; missing or inaccessible relevant decisions return `inconclusive`.
 - Delta re-verification gets the full new draft + changed-fragment manifest + dependency set
   and verdicts only the affected targets.
 - Try to refute each target as written; `default-refuted` is a burden-of-proof

@@ -15,7 +15,7 @@ By **bigger concepts**, drilled down from the facts Vectors 1–2 already establ
 5. **Performance / operability** — unbounded re-derivation, missing caches/invalidation, unbounded fleet cost.
 6. **Vocabulary / source-of-truth** — is there one enum/const, or re-declared prose/schemas that drift?
 
-The V2 gate result compiles and records V3's `fleet_plan` (axis/lens → shard → depth budget) on the frame page before any child spawns. One child owns at most two debt axes unless the plan records why a larger load is safe; each owned axis/lens carries its depth budget — at least two distinct search calls and one recorded evidence artifact (file:line) per owned axis/lens.
+The V2 gate result compiles and records V3's `fleet_plan` (axis/lens → shard → depth budget) in its bounded stage record (state-head indexed) before any child spawns. One child owns at most two debt axes unless the plan records why a larger load is safe; each owned axis/lens carries its depth budget — at least two distinct search calls and one recorded evidence artifact (file:line) per owned axis/lens.
 
 ## Hygiene lenses owned here
 

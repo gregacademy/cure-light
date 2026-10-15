@@ -109,6 +109,12 @@ never clear).
 5. Retry/reslice bounded failures within budget; otherwise the gate offers the operator: extend budget, accept explicitly partial review, request richer contract / smaller PR, or stop.
 6. Ledger detail is validated and materialized by the coordinator into the coverage pages; the gate shows the compact claim matrix plus coverage summary and exception groups — not full hunk returns. **Pinned-verifier coverage stops at claims/units/join**: the ledger, findings and closure validators are **NOT IMPLEMENTED** in `verify.mjs` (follow-up registry seam only — a future ledger validator would check one state/unit entry with its enums and counts, findings would check schema/IDs/severity/origin/subject anchors, and closure would check state identity and result enums). The coordinator still materializes these semantic records; there is no `verify ledger|findings|closure` CLI placeholder and no fabricated verdict may stand in for them.
 
+### Materialization preparation bridge
+
+There is no coordinator-authored per-run renderer/heredoc. Default derived P0 preparation goes to the distinct `fast` preparation role: candidate page files only, ≤4096-byte refs; it never writes notebook pages and has no source-diagnosis privilege. It copies/extracts deterministic candidates; it does not adjudicate sources, claims, attribution, negatives, exclusions, or acceptance.
+
+The coordinator reviews all required source records, seals the projection input and promotes once. The coordinator retains source designation/precedence, repair approval, merge ownership and semantic P0.5. There is no new packer or validator; optional diagnostics stay optional. The coordinator must audit repair attempts and stop/escalate unresolved ambiguity. Join stays the sole mechanical acceptance boundary. A preparation failure or ambiguity remains explicit and cannot become a partial-coverage acceptance.
+
 ## Artifacts
 
 - **Claim × implementation/test matrix** — the semantic product: every claim marked `backed` / `unbacked` / `contradicted` with evidence, claim IDs and small coverage refs/counts.

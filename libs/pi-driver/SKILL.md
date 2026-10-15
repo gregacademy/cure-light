@@ -31,6 +31,12 @@ Boot per the stage map (`kernel/references/context-loading.md`): this skill and 
 - **notebook** is the shared memory, not a database: no CAS, no audit — the plan contract is about page naming and ownership, not durability guarantees.
 - **Finding confirmation (pilot).** When the frame sets `finding_confirmation.mode: pilot`, spawn one fresh confirmation child per cluster with the approved `code-review` binding — never a producer/co-producer, never an unpinned spawn. Record producer/confirmer IDs and family or `unknown` (never inferred from group names). Confirmation writes go only to the child-exclusive artifact; the coordinator owns the confirmation trail. Blindness is prompt-level only — never claim host isolation, and do not advertise sandbox-enforced blindness.
 
+## Context budget, composition, and thinking pilot
+
+Follow `kernel/references/context-loading.md` for the operator-approved `context_budget` ceilings, two meters, checkpoint placement, exception receipts, and HOLD behavior. Record immutable seal + stage-record + state-head composition, section residency, single emission, and byte caps through `references/notebook-plan-contract.md`; a handoff loads only its active records.
+
+Use the higher/current approved level for semantic blocks: source designation, consistency/freeze judgment, V1 attribution/review basis, V2/V3 reconciliation, confirmation disputes, and final wording. A supported lower level is only for mechanical preparation. Restore the approved level before every semantic block and record each switch. If switching is unsupported, retain the approved level or delegate mechanical preparation; never a silent model/group substitution. Fleet and confirmation groups are unchanged. This is a pilot: if prompts/turns cannot switch, skip it and report no saving; retained transcript reasoning is not removed.
+
 ## Durability note (mirrors PhormOS)
 
-The notebook advertises replay convenience, not a durability claim. The run frame and findings survive turns/compaction/handoff in the same pi installation; a fresh machine with no notebook history starts a new run (the manifest's subject OID in the frame is the continuity anchor, not the notebook).
+The notebook advertises replay convenience, not a durability claim. The run frame and findings survive turns/compaction/handoff in the same pi installation; a fresh machine with no notebook history starts a new run (the manifest's subject OID in the stage records is the continuity anchor, not the notebook).

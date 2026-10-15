@@ -29,4 +29,43 @@ Nothing outside the active stage's row is loaded at that stage.
 
 ## Read-once rule
 
-Load each required section completely once per surviving context, then reference it afterwards. Identity key: (engine OID, relative path, section range/hash, context generation). Track a small loaded-doc index (path + range/hash), not a content copy. Compaction or handoff loses residency: the successor reloads ONLY its active required stage documents from the pinned mirror and never pretends page refs or a summary equal the normative text. An engine OID change invalidates the load cache. Minimal compile extracts do not replace stage execution reads.
+Load each required section completely once per surviving context, then reference it afterwards. Identity key: `(OID, path, section range/hash, generation)` — equivalently `(engine OID, relative path, section range/hash, context generation)`. Track a small loaded-doc index (path + range/hash), not a content copy. Compaction or handoff loses residency: the successor reloads ONLY its active required stage documents from the pinned mirror and never pretends page refs or a summary equal the normative text. An engine OID change invalidates the load cache. Minimal compile extracts do not replace stage execution reads.
+
+### Section-residency inventory
+
+Before each stage, record an explicit active-section ranges/hash inventory: `{OID, path, section range, section hash, generation}` for every required section. On rehydration, rehydrate only complete active required sections and enforce the approved `(OID, path, section range/hash, generation)` load identity; any engine OID change invalidates the cache. **Do not read all 551 template lines during V1.** The V1 inventory contains only the vector template + invariants + coverage sections named in the stage map. A section reference or a summary is not a substitute for the complete required section.
+
+## Coordinator `context_budget` policy (pilot)
+
+This policy is operator-approved, NOT global defaults; these are pilot allocation choices for a ~1M window, not quality quotas or verifier limits. It belongs to the semantic frame; the operator approves values, the coordinator records phases/checkpoints, and the harness observes usage. Smaller windows need operator-scaled values. The seal policy includes absolute tokens and the actual model window.
+
+| Logical stage / segment | Target | Soft checkpoint | Hard HOLD |
+|---|---:|---:|---:|
+| Boot + frame compile/seal | ≤60K | 60K | 75K |
+| P0 preparation/join/gate | ≤130K | 150K | 180K |
+| V1 setup/freeze/dispatch/terminal receipts | ≤120K | 130K | 160K |
+| V1 reconciliation + ledger + vector gate, after resume when needed | ≤110K | 120K | 150K |
+| Preflight + V2, including enabled early confirmation | ≤110K | 120K | 150K |
+| V3, including enabled early confirmation | ≤110K | 120K | 150K |
+| Optional yagni | ≤90K | 100K | 130K |
+| Output/draft + enabled text confirmation | ≤90K | 100K | 130K |
+| Closure state/delta cycle | ≤110K | 120K | 150K |
+
+### Meters, thresholds, and receipts
+
+Keep two separate meters:
+
+1. **Resident occupancy:** latest request `input + cacheRead + cacheWrite`; record its peak per logical phase and context generation.
+2. **Emitted/replayed traffic:** phase-added content/transport plus total coordinator request traffic and output/thinking usage, across ALL generations.
+
+Prefer actual provider usage. Label char/4 estimates explicitly. Child `details.stats` is not parent context; a context reset does not eliminate emitted bytes, and an occupancy reset is not a content saving.
+
+At the soft threshold, finish the current block, stop starting new large blocks, write a checkpoint. At the hard threshold, HOLD, only bounded checkpoint/error reporting. An exceeded target is a recorded exception/continuation segment, never evidence truncation, dropped work, or manufacturing pass/partial-coverage acceptance. The operator can extend a named budget or authorize handoff. A docs rule is not a pre-ingestion firewall: report overshoots honestly.
+
+A phase receipt records: phase, generation, peak, context before/after checkpoint, engine/state identity, warnings/exceptions, next-task refs. Retain raw metrics outside the notebook.
+
+### Safe checkpoint placement
+
+Preserve seal→P0 and P0→V1. Add a P0 checkpoint after source/claims/unit preparation and before join dispatch; carry pending failures explicitly. Make the V1 checkpoint after all terminal fleet receipts and before reconciliation/materialization. V2/V3 may checkpoint between fleet collection and confirmation/aggregation; output checkpoints are between version rounds; closure checkpoints follow durable delta inputs. Never hand off during an unresolved spawn batch; parallel spawn-only batching stays binding.
+
+On continuity, a same-state handoff never re-pulls/rebuilds the subject or inherits a fresh semantic verdict. The 20–35K reload is an allocation estimate; report reload cost separately, never as a content saving. It reloads active normative sections and bounded state records, then still consumes all required evidence.

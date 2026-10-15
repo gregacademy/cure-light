@@ -6,7 +6,9 @@ The notebook is the shared memory between phases, children, and handoff contexts
 
 | Page | Owner | Contents | Lifetime |
 |---|---|---|---|
-| `pipeline-frame-<owner>-<pr>-s<n>` | coordinator (seal → Phase 0) | frozen run options + planned subject mechanism (chhound sandbox | plain worktree) — no tree fields at the pre-pull gate; `subject_path` / `subject_oid`, changed-file list, contract ref (page or path), research binding (mode chhound-rail | direct-tree, `ch_prefix`, exact tool names, excluded namespaces, fallback reason), contract-source pins/designation, the shipped chunker path/sha256/recipe and the pinned verifier path/sha256/tool_version at `cure_light_source_head_oid`, the literal delegated verification-child contract + command template frozen at seal, claims-draft / units-manifest / join-draft refs/hashes, the per-vector `fleet_plan` (shard id, group, facet/lens or claims/units ownership, per-facet depth budget) recorded at its compile gate before that vector's children spawn, with any amendment and reason, Phase-0 input budget and P0.5 sweep/hard-case evidence, the P0.2 `source_consistency` outcome and the independent `repair_required` record (records + continuation) and the post-V1 `review_basis` record, and fallback notes recorded at their gates once the pull lands | one review state; a deliberate re-pull or a contract-only repair starts a NEW frame (linked by diff), never overwritten in place |
+| `pipeline-frame-<owner>-<pr>-s<n>` | coordinator (seal → Phase 0) | original sealed `pipeline-frame-…` body retained unchanged: frozen run options, planned subject mechanism (chhound sandbox | plain worktree), immutable approved plan, and the literal delegated verification-child contract + command template | one review state; a deliberate re-pull or a contract-only repair starts a NEW frame (linked by diff), never overwritten in place |
+| `stage-<owner>-<pr>-s<n>-<sequence>` | coordinator | bounded stage record: P0 reality/pins (`subject_path` / `subject_oid`, changed-file list, contract ref, source designation and artifact refs/hashes); research binding and fallback; chunker and verifier path/sha256/tool_version identities; per-vector `fleet_plan` and amendments; P0.5 evidence, `source_consistency`, `repair_required`, `review_basis`, basis, phase metrics and checkpoint receipt | immutable named stage record; a correction is a new sequence record |
+| `state-head-<owner>-<pr>-s<n>` | coordinator | small state-head page: ordered stage refs/hashes and sequence, plus the active-record selection | current index for one review state; never replaces the seal |
 | `contract-<owner>-<pr>-s<n>` | coordinator (Phase 0) | the verbatim contract (§0.2): PR description, linked issues + locked decisions, explicitly designated in-diff sources with designating pointer/role/interpretation, source pins (blob OIDs/hashes/version refs), changed-file list, subject/base OIDs; its existence, read and match to the manifest's `contract_ref` are verified at the Phase-0 gate | one review state, like the frame; a re-pull or a contract-only repair compiles the new state's contract |
 | `claims-<owner>-<pr>-s<n>` | coordinator (Phase 0 → V1) | source-bound claims-draft ref/hash and claims/nonclaims/conflicts/notes/missing-source candidates, source designation/interpretation and consistency witnesses; V1 validation/freeze evidence and the resulting complete queryable claim directory (paged `-p<k>` when needed). Draft IDs are run-scoped, not canonical plugin identities; preserve the original draft and trace changes | one review state; retained bytes and source/claim refs stay addressable through closure/finalization |
 | `symbol-map-<owner>-<pr>-s<n>` | coordinator (preflight, before V2) | the state's symbol map: selected symbols, census heat table, capped outside locations, provenance/caps (chhound-driver.md, Symbol sweep) | one review state; kept through the state's consumers (V2 sweep, V3 seed, yagni), discarded when the state closes |
@@ -16,6 +18,12 @@ The notebook is the shared memory between phases, children, and handoff contexts
 | `dis-<n>-review` (or the durable `decisions` page when follow-ups survive) | coordinator | deferred-decision + closed-by-operator records: author/time/rationale/scope | durable |
 
 A re-pull starts the next review state and writes **distinct** frame + contract pages for it — never overwrite an earlier state's pages in place (the new frame reuses `subject_path` with the new `subject_oid`; the tree itself is updated in place).
+
+### Immutable seal and composition
+
+The original sealed `pipeline-frame-…` body retained unchanged includes the literal verifier-child contract and immutable approved plan. Put P0 reality/pins, vector `fleet_plan`s, basis and phase metrics in coordinator-owned bounded stage-record pages. A small state-head page lists ordered stage refs/hashes and sequence. The logical frame = sealed plan + this explicit composition; each handoff loads only active records. Do not use a hash-only replacement: never overwrite the seal with hash-only text. `frame_sha` stays the approved-plan SHA, never an engine commit, mirror `frame.json`, or mutable composition.
+
+The guarantee is that every former frame field stays reachable and authoritative through the seal plus its referenced stage-record pages and state-head index: subject/base identity and changed files; contract/source pins and designation; research binding/fallback; chunker/verifier identities; claims/units/join refs; every fleet plan/amendment; P0 input budget, sweep, hard cases and source-consistency; `repair_required`, `review_basis`, and phase/checkpoint metrics. Tests must prove this reachability. A handoff loads only the active records; it does not rebuild the subject or a semantic verdict.
 
 Reference pages by name. Children `notebook_read` on demand; they do not preload bodies. The coordinator serializes writes with a process-local ordering so same-name writes don't race.
 
@@ -39,6 +47,16 @@ a notebook page (50 KB / 2000 lines). The index carries the denominator,
 counts, exclusion policy and completion flags plus exact shard refs, so
 closure and finalization can cite the accounting without loading every shard.
 
+### Byte caps and single emission
+
+Count UTF-8 bytes, not characters. An ordinary ledger row ≤384 UTF-8 bytes; a ledger shard ≤16 KiB / 500 lines; a summary/index ≤12 KiB; combined V1 coverage + claims projection ≤80 KiB. The operator may approve a named larger allocation. The platform 50 KiB/2000-line limit stays an independent hard bound. Never truncate on overflow: overflow splits or HOLDs, never truncates proof fields, never drops a unit; pending never becomes excluded.
+
+Each page header binds complete identity/manifest/assignment/frozen-directory hashes. Use a deterministic evidence-ref dictionary instead of repeated prose. Long anchors/edges use linked continuation records or new shards. Full reports remain accessible through closure/finalization.
+
+Generate/freeze once; collect diagnostics as counts/refs, with no helper printing, no patch-with-echo, no re-cat of an unchanged body, no pretty-print/re-serialize of an authoritative artifact, and no printing a whole multi-page bundle. On the by-value interface, one page-body read + one exact write remains unavoidable: call it two transits, not zero-copy. Necessary seal/readback remains. A genuine correction makes a named new version.
+
+Coordinator-owned bounded trail shards in `pr-<n>-review` cover V2/V3 review-check/lens/research trails and confirmation attempts: refs/counts, current finding rows, and gate-visible pending/refuted/disputed limits. Do not re-paste every historical attempt or full rendered draft. Required final draft/confirmation bytes stay pinned in the artifact store; every text-stage child still receives the full target draft via its pinned input.
+
 ## Content rules
 
 - **Findings are recoverable facts** — keep the evidence-format rows; discard tender re-derivable code trivia freely at handoff.
@@ -58,12 +76,12 @@ closure and finalization can cite the accounting without loading every shard.
 
 When `handoff` is available and the operator confirms the frame:
 
-1. Write and read back — verifying both match — `pipeline-frame-<owner>-<pr>-s<n>` (compiled options + planned subject mechanism — the manifest's tree fields land at the Phase 0 gate) and `pr-<n>-review` (findings skeleton); the readback is the notebook write-availability proof (requirements-check.md row 6). The seal freezes the verifier pin, the literal delegated execution contract, and the fleet policy (per-vector groups, the at-most-two-per-child cap, depth-budget units); each vector's `fleet_plan` lands in the frame at its compile gate (intake-and-scope.md §0.3b); the readback is the proof of text freeze — the tool's JSON alone cannot prove delegation happened.
+1. Write and read back — verifying both match — `pipeline-frame-<owner>-<pr>-s<n>` (compiled options + planned subject mechanism — the manifest's tree fields land at the Phase 0 gate) and `pr-<n>-review` (findings skeleton); the readback is the notebook write-availability proof (requirements-check.md row 6). The seal freezes the verifier pin, the literal delegated execution contract, and the fleet policy (per-vector groups, the at-most-two-per-child cap, depth-budget units); each vector's `fleet_plan` lands in its immutable stage record at its compile gate (intake-and-scope.md §0.3b), and the state head adds that record. The readback is the proof of text freeze — the tool's JSON alone cannot prove delegation happened.
 2. Discard recoverable code-trivia pages; refresh the durable decision page.
 3. Draft the handoff prompt that carries ONLY: the frame's location, the current state (intake complete, requirements pass/fallback), the immediate next step (Phase 0 pull subject + contract → Vector 1), and any blocker or failed path worth avoiding.
-4. Call `handoff` with `discardPages` for code-trivia pages and the task prompt pointing at the frame page by name.
+4. Call `handoff` with `discardPages` for code-trivia pages and the task prompt pointing at the sealed frame and state-head pages by name.
 
-The next context reads the frame page, loads kernel references on demand, and kicks off Phase 0 → Vector 1 — it does not re-fetch the kernel.
+The next context reads the sealed frame plus only its active state-head records, loads kernel references on demand, and kicks off Phase 0 → Vector 1 — it does not re-fetch the kernel.
 
 ## If no handoff
 

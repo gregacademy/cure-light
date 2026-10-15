@@ -19,9 +19,15 @@ Proposals this follows (workspace root, outside this repo):
 workflows/
   p0/                 P0-phase workflows (p0-close here; nothing else yet)
   test/
-    streams.mjs       the two input streams + fault injection + CLI
-    harness.mjs       stub workflow host (real shell, stubbed model/notebook handles)
-    p0-close.test.mjs red-first contract and behaviour tests
+    streams.mjs                  the two input streams + fault injection + CLI
+    harness.mjs                  stub workflow host (real shell, stubbed model/notebook handles)
+    p0-close-testkit.mjs         shared draft path, pins and canonical invocation
+    run.mjs                      tier runner (fast | acceptance | compile | all)
+    streams.test.mjs             fixture sanity (fast, green)
+    harness.test.mjs             stub-host self-test (fast, green)
+    p0-close.contract.test.mjs   red-first executable specification (fast)
+    p0-close.acceptance.test.mjs frozen-baseline byte-equality (opt-in tier)
+    p0-close.compile.test.mjs    node --check + canonical compile (opt-in tier)
 ```
 
 ## Input streams
@@ -44,14 +50,27 @@ node workflows/test/streams.mjs synthetic /tmp/p0-close-synthetic --fault duplic
 node workflows/test/streams.mjs baseline  /tmp/p0-close-baseline
 ```
 
-## Run the tests
+## Test tiers
+
+| Tier | Files | Role | State today |
+|---|---|---|---|
+| **fast** (default) | `streams`, `harness`, `p0-close.contract` | fixture sanity, host self-test, red-first contracts | 6 pass / 11 fail, all `E_WORKFLOW_MISSING` |
+| **acceptance** (opt-in) | `p0-close.acceptance` | proposal §5: frozen-baseline byte-equality on a scratch copy | red (`E_WORKFLOW_MISSING`); skips when the store is absent |
+| **compile** (opt-in) | `p0-close.compile` | ladder step 1: `node --check` (CJS) + canonical compile | skipped until the draft lands |
 
 ```bash
+node workflows/test/run.mjs             # fast (default) — the build loop
+node workflows/test/run.mjs acceptance  # baseline replay (external store, ~2.6 MB copy)
+node workflows/test/run.mjs compile     # draft toolchain conformance
+node workflows/test/run.mjs all         # every tier
+
+# raw equivalent for everything:
 node --test "workflows/test/*.test.mjs"
 ```
 
-Expected today: the stream meta-tests pass; every workflow test fails with
-`workflow draft missing: .../workflows/p0/p0-close.js` — that is the red-first state.
+The contract tier is the red-first executable specification for `p0-close.js`; once the draft
+lands, those cases stop being red and become the regression suite pinned on the frozen
+baseline.
 
 ## Governance
 

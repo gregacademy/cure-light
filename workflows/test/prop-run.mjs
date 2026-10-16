@@ -153,9 +153,11 @@ export function main(argv, { stdout = process.stdout, stderr = process.stderr } 
     }
     const results = selected.map((def) => runSingleSpec(def, spec, { driver: options.driver, timeoutMs: options.timeout }));
     for (const result of results) {
-      if (!options.json && !options.quiet) stdout.write(`${result.ok ? "PASS" : "FAIL"}  ${result.property}  ${result.description}${result.ok ? "" : `\n      ${result.detail}`}\n`);
+      const state = result.skipped ? "SKIP" : result.ok ? "PASS" : "FAIL";
+      if (!options.json && !options.quiet) stdout.write(`${state}  ${result.property}  ${result.description}${result.ok ? "" : `\n      ${result.detail}`}\n`);
     }
     if (options.json) stdout.write(JSON.stringify({ spec, results: results.map(({ report, ...rest }) => rest) }, null, 2) + "\n");
+    if (results.some((result) => result.skipped)) return 3;
     return results.every((result) => result.ok) ? 0 : 1;
   }
 
@@ -181,6 +183,7 @@ export function main(argv, { stdout = process.stdout, stderr = process.stderr } 
     stdout.write(`\n${summary.passed}/${summary.total} properties held over ${summary.trials} trials — driver=${options.driver}\n`);
   }
 
+  if (summary.infra > 0) return 2;
   if (summary.skipped > 0 && summary.failed === 0) return 3;
   return summary.failed === 0 ? 0 : 1;
 }

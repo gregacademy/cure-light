@@ -165,7 +165,9 @@ export function runProperty(def, options = {}) {
         rmSync(inTrialDir(index), { recursive: true, force: true });
         continue;
       }
-      throw problem;
+      // An engine error is never a silent pass and never a counterexample: fail fast, keep
+      // the report, and let the caller see the spec that broke the engine.
+      return finish({ infraError: `engine error on trial ${index} (${describeSpec(spec)}): ${problem.message}`, breakTrial: index });
     }
     trials += 1;
     recordLabels([...specLabels(spec), ...outcome.labels]);
@@ -264,12 +266,21 @@ export function runProperty(def, options = {}) {
   return finish();
 }
 
-/** Replay one explicit spec (the shrunk counterexample) through the property. */
+/** Replay one explicit spec (the shrunk counterexample) through the property.
+ * A run that did not happen is never a pass: a missing draft reports `skipped`, any other
+ * run-level error reports the run failure itself. */
 export function runSingleSpec(def, spec, options = {}) {
   const { driver = "stub", timeoutMs = 600_000, caseDir = null } = options;
   const dir = caseDir ?? mkdtempSync(path.join(os.tmpdir(), "cure-light-prop-replay-"));
   mkdirSync(dir, { recursive: true });
   const { report } = driveStoreSpec(spec, { workflow: def.workflow, args: def.args, driver, caseDir: path.join(dir, "store"), timeoutMs });
+  const base = { property: def.name, driver, spec, description: describeSpec(spec), caseDir: dir, report };
+  if (report.error === "workflow-missing") {
+    return { ...base, ok: false, skipped: `workflow draft missing: ${def.workflow}`, detail: `workflow draft missing: ${def.workflow}` };
+  }
+  if (report.error) {
+    return { ...base, ok: false, skipped: null, detail: `run failed: ${report.failure}` };
+  }
   const ctx = {
     spec,
     report,
@@ -293,7 +304,7 @@ export function runSingleSpec(def, spec, options = {}) {
   } catch (problem) {
     verdict = { ok: false, detail: problem.message ?? String(problem) };
   }
-  return { property: def.name, driver, spec, description: describeSpec(spec), ...verdict, caseDir: dir, report };
+  return { ...base, ...verdict };
 }
 
 export function summarizeProperties(reports) {
@@ -302,6 +313,7 @@ export function summarizeProperties(reports) {
     passed: reports.filter((report) => report.ok).length,
     failed: reports.filter((report) => !report.ok && !report.skipped && !report.infraError).length,
     skipped: reports.filter((report) => report.skipped).length,
+    infra: reports.filter((report) => report.infraError).length,
     trials: reports.reduce((sum, report) => sum + report.trials, 0),
     properties: reports.map((report) => ({ property: report.property, driver: report.driver, ok: report.ok, trials: report.trials, firstFailure: report.failures[0]?.description ?? null })),
   };

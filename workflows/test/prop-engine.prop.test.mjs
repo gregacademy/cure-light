@@ -6,7 +6,7 @@
 // (`fixtures/probe-mark.js`), which needs no draft and no model turn, so it is green today.
 import { after, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { cleanupTempDirs, snapshotTree } from "../../kernel/tools/verify-testkit.mjs";
@@ -87,8 +87,7 @@ describe("property engine", () => {
     assert.equal(report.ok, true, "discards must not fail a property");
   });
 
-  it("keeps the mutation registry well formed", () => {
-    for (const name of MUTATION_NAMES) {
+  it("keeps the mutation registry well formed", () => {    for (const name of MUTATION_NAMES) {
       const mutation = MUTATIONS[name];
       assert.ok(["prewrite", "pin", "merge", "freeze", "envelope"].includes(mutation.stage), `${name}: invalid stage`);
       assert.ok(mutation.summary, `${name}: no summary`);
@@ -99,5 +98,35 @@ describe("property engine", () => {
       }
       if (mutation.expected === null) assert.ok(mutation.note, `${name}: unpinned mutations must document the assumption`);
     }
+  });
+
+  it("applies p05-no-ceiling on both box layouts (no sidecar crash)", () => {
+    // Regression: the 1-box stream has no join/box-0000.p05-evidence.json, only the seed's
+    // global sidecar. A mutation that reads the wrong path used to throw a raw ENOENT.
+    for (const boxes of [1, 2]) {
+      const spec = { schema: "store-spec/1", boxes, mutations: [{ name: "p05-no-ceiling", params: {} }] };
+      const dir = mkdtempSync(path.join(os.tmpdir(), "cure-light-p05-"));
+      const { runRoot } = renderStore(spec, dir);
+      const rel = boxes === 2 ? "join/box-0000.p05-evidence.json" : "join/p05-evidence.json";
+      const evidence = JSON.parse(readFileSync(path.join(runRoot, rel), "utf8"));
+      assert.equal("input_ceiling_bytes" in (evidence.budget ?? {}), false, `${rel} was not mutated`);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("stops on an unexpected engine error with a report, never a silent pass", () => {
+    const broken = { schema: "store-spec/1", boxes: 1, mutations: [{ name: "no-such-mutation", params: {} }] };
+    const def = { ...findProperty("probe-clean-run-accepts"), cover: [], gen: { sample: () => broken } };
+    const report = runProperty(def, { cases: 3, seed: 4, driver: "stub" });
+    assert.match(report.infraError ?? "", /no-such-mutation/, "the engine error was not reported");
+    assert.equal(report.ok, false);
+    assert.equal(report.failures.length, 0, "an engine error must not masquerade as a counterexample");
+  });
+
+  it("never reports a vacuous pass when the workflow under test is absent", () => {
+    const def = findProperty("mutation-program-reaches-its-sealed-reason");
+    const result = runSingleSpec(def, { schema: "store-spec/1", boxes: 1, mutations: [{ name: "preexisting-draft-equal", params: {} }] }, { driver: "stub" });
+    assert.equal(result.ok, false, "a replay with no workflow to run reported a pass");
+    assert.match(result.skipped ?? "", /workflow draft missing/);
   });
 });

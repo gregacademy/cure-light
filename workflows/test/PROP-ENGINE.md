@@ -82,6 +82,10 @@ Mutation registry (`prop/mutations.mjs`), with the pipeline stage that decides a
 | `preexisting-envelope-equal` | freeze | **unpinned** (overwrite policy for equal bytes) |
 | `p05-no-ceiling` | envelope | **unpinned** (token assumed `evidence-failed`) |
 
+Mutations must resolve the files that actually exist: the 1-box stream carries the seed's global
+`join/p05-evidence.json`, the 2-box stream carries per-box sidecars. A mutation that cannot find
+its target throws `MutationNotApplicable` (a discard) rather than a raw filesystem error.
+
 A property that pins reasons uses the stage rule: the **earliest stage** any applied mutation
 touches decides the outcome (a pre-write mismatch refuses before the merge runs); an unpinned
 mutation at that stage makes the program unpinned, and the property classifies instead of
@@ -121,6 +125,19 @@ planted violation, and are green today: the engine must find the violation, shri
 minimal counterexample, replay it through both hosts, honour `cover`, and count discards.
 
 ## 6. Coverage, discards and budget
+
+**Failure taxonomy** — the engine distinguishes four outcomes, and only one of them is a bug in the
+workflow under test:
+
+| Outcome | Meaning | Reported as |
+|---|---|---|
+| property violation | the invariant did not hold for a generated store | counterexample (+ shrunk form, replay commands) |
+| discard | the generator or a mutation could not produce this input (`GeneratorDiscard`, `MutationNotApplicable`) | `discarded` count, no failure |
+| skip | the workflow under test does not exist yet | `skipped`, CLI exit `3` |
+| engine error | a bug in the generator, renderer or a mutation (e.g. an unreadable sidecar) | `infraError`, report still written, CLI exit `2`, run stops |
+
+A replay (`--spec`) applies the same rule: a run that did not happen is never a pass. A missing
+draft reports `skipped`, any other run-level error reports the run failure itself.
 
 - Labels come from the spec (boxes, mutation count, each mutation, probe) and from the property
   (typically `reason=<token>`); `coverage.labels` reports count and percentage over trials.

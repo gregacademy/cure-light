@@ -109,6 +109,9 @@ export const P0_CLOSE_PROPERTIES = [
       const reason = ctx.report.reason;
       ctx.classify(`reason=${reason}`);
       if (expected === null) {
+        // Unpinned programs are classified, never asserted. The layering keeps them honest:
+        // `reason-is-authored` still rejects a token outside the six, and
+        // `refuse-leaves-the-store-untouched` still rejects a refusal that wrote.
         const unpinned = unpinnedMutations(ctx.spec.mutations).join(", ");
         ctx.classify("unpinned");
         return `unpinned(${unpinned}) -> ${reason}`;

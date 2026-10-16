@@ -16,7 +16,8 @@
 //   existing differing target     -> frozen-artifact
 //   envelope not ok               -> evidence-failed
 //   zero-link / unresolved rows are LEGAL row states, not errors
-import { readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import path from "node:path";
 import { readBoxRows, readBytes, readJson, unitPayloadAbs, writeBoxRows, writeBytes, writeJson, SEED_DIR } from "../../../kernel/tools/verify-testkit.mjs";
 
 export class MutationNotApplicable extends Error {
@@ -156,10 +157,20 @@ function payloadMissing(runRoot) {
   rmSync(unitPayloadAbs(runRoot, manifest.units[0].unit_id), { force: true });
 }
 
+/** The p05 sidecar that exists on disk: per-box (2-box stream) or the seed's global one. */
+function p05EvidenceRel(runRoot) {
+  for (const rel of ["join/box-0000.p05-evidence.json", "join/p05-evidence.json"]) {
+    if (existsSync(path.join(runRoot, rel))) return rel;
+  }
+  throw new MutationNotApplicable("no p05 evidence sidecar in this store");
+}
+
 function p05NoCeiling(runRoot) {
-  const boxId = listBoxes(runRoot)[0];
-  const rel = `join/${boxId}.p05-evidence.json`;
+  const rel = p05EvidenceRel(runRoot);
   const evidence = readJson(runRoot, rel);
+  if (!evidence.budget || !("input_ceiling_bytes" in evidence.budget)) {
+    throw new MutationNotApplicable(`no input_ceiling_bytes in ${rel}`);
+  }
   delete evidence.budget.input_ceiling_bytes;
   writeJson(runRoot, rel, evidence);
 }

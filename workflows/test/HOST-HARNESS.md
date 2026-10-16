@@ -112,6 +112,18 @@ Normalization rules (documented so a new volatile field fails loudly):
 - Log text is captured in the report but excluded from the digest: it is the human card and
   may carry the evidence stamp/PID (`cwd/.tmp/<workflow>/<stamp>-<pid>`).
 
+Author rules that keep a workflow pure (the harness fails the case when these are broken):
+
+1. Every input arrives in the args string. No ambient reads: no `$PWD` discovery, no store
+   search, no defaults for pins, no environment lookups beyond what the args name.
+2. The exit payload is the machine result: reason plus stable values (hashes, counts,
+   relative paths). No timestamps, PIDs, durations or absolute evidence paths.
+3. A rerun from the same store state writes the same bytes and exits with the same reason.
+4. No model turns, no network, no wall-clock-dependent branching in the pure core. Anything
+   context-derived belongs in a separate resolver layer that *produces* the explicit args
+   (see the zero-arg plan) — then both layers can be tested: the resolver's output args are
+   the core's input case.
+
 ## 4. Orchestration by an agent
 
 `host-run.mjs` is the entry point an agent drives (deterministic exit codes: `0` pass,

@@ -68,6 +68,56 @@ export function exitPayload(entry) {
   return { reason: data.reason };
 }
 
+/** Parse a captured pi JSONL receipt into the normalized workflow result shape. */
+export function observeReceipt(stdout) {
+  const { records, unparsed } = parseRecords(stdout);
+  const entries = records.filter((record) => record.type === "entry_appended").map((record) => record.entry);
+  const of = (customType) => entries.filter((entry) => entry.customType === customType);
+
+  const exitEntry = of("workflow-exit").at(-1) ?? null;
+  const startError = of("workflow-error").find((entry) => entry.data?.phase === "start") ?? null;
+  const runtimeError = of("workflow-error").find((entry) => entry.data?.phase !== "start") ?? null;
+  const summary = of("workflow-summary").at(-1)?.data ?? null;
+  const payload = exitPayload(exitEntry);
+  const reason = exitEntry?.data?.reason ?? null;
+
+  let error = null;
+  if (startError) {
+    error = Object.assign(new Error(startError.data.error ?? "workflow could not start"), {
+      code: /not found/i.test(startError.data.error ?? "") ? HOST_MISSING : "E_WORKFLOW_START",
+    });
+  } else if (runtimeError) {
+    error = Object.assign(new Error(runtimeError.data.error ?? "workflow error"), { code: "E_WORKFLOW_RUNTIME" });
+  } else if (reason === "error") {
+    error = Object.assign(new Error(exitEntry?.data?.error ?? "workflow failed at run time"), { code: "E_WORKFLOW_RUNTIME" });
+  }
+
+  return {
+    error,
+    exit: payload,
+    exits: payload ? [payload] : [],
+    reason,
+    logs: of("workflow-log").map((entry) => entry.data?.text ?? ""),
+    shellCalls: of("workflow-shell").map((entry) => ({
+      command: entry.data?.detail ?? "",
+      ok: entry.data?.ok === true,
+      exitCode: entry.data?.exitCode ?? null,
+      output: entry.data?.output ?? "",
+      truncated: entry.data?.truncated === true,
+    })),
+    checkpoints: summary?.checkpoints ?? 0,
+    entries: entries.map((entry) => entry.customType),
+    summary,
+    usage: {
+      turns: summary?.turns ?? 0,
+      classifySteps: summary?.classifySteps ?? 0,
+      checkpoints: summary?.checkpoints ?? 0,
+      costUsd: summary?.costUsd ?? 0,
+    },
+    transcript: { records, unparsed, entries },
+  };
+}
+
 export function runHost({
   workflow,
   args = "",
@@ -95,58 +145,20 @@ export function runHost({
   writeFileSync(path.join(dir, "pi.stderr"), stderr);
   writeFileSync(path.join(dir, "invocation.json"), JSON.stringify({ piBin, argv, cwd }, null, 2) + "\n");
 
-  const { records, unparsed } = parseRecords(stdout);
-  const entries = records.filter((record) => record.type === "entry_appended").map((record) => record.entry);
-  const of = (customType) => entries.filter((entry) => entry.customType === customType);
-
-  const exitEntry = of("workflow-exit").at(-1) ?? null;
-  const startError = of("workflow-error").find((entry) => entry.data?.phase === "start") ?? null;
-  const runtimeError = of("workflow-error").find((entry) => entry.data?.phase !== "start") ?? null;
-  const summary = of("workflow-summary").at(-1)?.data ?? null;
-  const payload = exitPayload(exitEntry);
-  const reason = exitEntry?.data?.reason ?? null;
-
+  const observed = observeReceipt(stdout);
   const timedOut = proc.error?.code === "ETIMEDOUT";
-  let error = null;
+  let error = observed.error;
   if (proc.error && !timedOut) {
     error = Object.assign(new Error(`host spawn failed: ${proc.error.message}`), { code: "E_HOST_SPAWN" });
   } else if (timedOut) {
     error = Object.assign(new Error(`host run exceeded ${timeoutMs} ms`), { code: "E_HOST_TIMEOUT" });
-  } else if (startError) {
-    error = Object.assign(new Error(startError.data.error ?? "workflow could not start"), {
-      code: /not found/i.test(startError.data.error ?? "") ? HOST_MISSING : "E_WORKFLOW_START",
-    });
-  } else if (runtimeError) {
-    error = Object.assign(new Error(runtimeError.data.error ?? "workflow error"), { code: "E_WORKFLOW_RUNTIME" });
-  } else if (reason === "error") {
-    error = Object.assign(new Error(exitEntry?.data?.error ?? "workflow failed at run time"), { code: "E_WORKFLOW_RUNTIME" });
   }
 
   return {
     driver: "host",
+    ...observed,
     error,
-    exit: payload,
-    exits: payload ? [payload] : [],
-    reason,
-    logs: of("workflow-log").map((entry) => entry.data?.text ?? ""),
-    shellCalls: of("workflow-shell").map((entry) => ({
-      command: entry.data?.detail ?? "",
-      ok: entry.data?.ok === true,
-      exitCode: entry.data?.exitCode ?? null,
-      output: entry.data?.output ?? "",
-      truncated: entry.data?.truncated === true,
-    })),
-    checkpoints: summary?.checkpoints ?? 0,
-    entries: entries.map((entry) => entry.customType),
-    summary,
-    usage: {
-      turns: summary?.turns ?? 0,
-      classifySteps: summary?.classifySteps ?? 0,
-      checkpoints: summary?.checkpoints ?? 0,
-      costUsd: summary?.costUsd ?? 0,
-    },
     process: { exitCode: proc.status, signal: proc.signal, timedOut, durationMs },
-    transcript: { records, unparsed, entries },
     paths: { dir, stdout: path.join(dir, "pi.stdout.jsonl"), stderr: path.join(dir, "pi.stderr") },
   };
 }

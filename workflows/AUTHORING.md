@@ -56,15 +56,18 @@ node workflows/run.mjs acceptance  # frozen-baseline byte equality (15 outputs)
 node workflows/run.mjs compile     # draft toolchain conformance
 ```
 
-Current red-first state (2026-10-16, draft absent):
+Landed state (2026-10-16, after `workflows/p0/p0-close.js`):
 
 | Tier | State |
 |---|---|
-| fast | 17 tests: 6 pass, 11 fail (`E_WORKFLOW_MISSING`) |
-| host | smoke 4 pass; p0-close 12 red |
-| prop | 17 tests: 10 pass (engine self-tests), 7 skipped (p0-close) |
-| acceptance | red (baseline present, draft missing) |
-| compile | 2 skipped |
+| fast | 17/17 pass |
+| host | 17/17 pass (smoke 4 + p0-close 11 + baseline replay + documented-recipe proof) |
+| prop | 17/17 pass (engine self-tests + p0-close invariants) |
+| acceptance | 1/1 pass (byte-exact baseline) |
+| compile | 2/2 pass |
+
+The generated-input properties also hold over seeds 1..16 (`node workflows/p0/prop-run.mjs p0-close
+--cases 10 --seed <n>`).
 
 Do not make a tier look green by weakening a case or by implementing the draft inside the
 test session. Fix the draft, or fix the case/property and state the reason in the change.

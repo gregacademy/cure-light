@@ -6,9 +6,9 @@ and the purity rules. This file specifies **what** `p0-close` must do; AUTHORING
 [`../testkit/HOST-HARNESS.md`](../testkit/HOST-HARNESS.md); generated-input semantics:
 [`prop/PROP-ENGINE.md`](prop/PROP-ENGINE.md).
 
-Status: **red-first, draft absent** (2026-10-15). The draft is `workflows/p0/p0-close.js`,
-runs **by path** during development, and every p0-close test fails with
-`E_WORKFLOW_MISSING` until it lands. Design source of record:
+Status: **landed** (2026-10-16). The workflow is `workflows/p0/p0-close.js`, runs **by path**
+during development, and every tier is green: fast 17/17, host 17/17, prop 17/17,
+acceptance 1/1 (byte-exact baseline), compile 2/2. Design source of record:
 `cure-light-p0-close-workflow-proposal.md` (workspace root, outside this repo).
 
 ## What it replaces
@@ -56,6 +56,14 @@ steps (`ai071`/`ai072`) with one deterministic script. It:
   deleted by the script.
 - Checkpoints after the args gate and at the end; runs are bounded with `--workflow-time`
   (ms) plus shell timeouts.
+- **Pipeline call.** The kernel coordinator also calls this workflow headlessly —
+  `pi --offline --no-session --mode json --print … --workflow-time 420000
+  "/workflow <abs>/workflows/p0/p0-close.js <verbatim args>"` — with cwd a writable
+  run-scoped directory and the workflow token absolute (never the read-only engine
+  checkout). The receipt handling (the run-namespace receipt dir, the three bounded
+  `grep … | tail -n 1` reads, the six-reason routing) lives in the kernel document
+  [`kernel/references/intake-and-scope.md`](../../kernel/references/intake-and-scope.md)
+  §0.3 "Merge/p05/envelope prep", not here.
 
 ## Required inputs
 
@@ -175,13 +183,14 @@ the evidence-reading recipes are in AUTHORING.md §The builder loop and §Run an
 |---|---|---|---|
 | fast | `workflows/p0/test/streams.test.mjs` | fixture sanity | 3 pass |
 | fast | `workflows/testkit/harness.test.mjs` | stub-host self-test | 3 pass |
-| fast | `workflows/p0/test/contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 fail, all `E_WORKFLOW_MISSING` |
+| fast | `workflows/p0/test/contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 pass |
 | host | `workflows/testkit/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real `pi` CLI, purity rerun, and stub≡host digest equality | 4 pass |
-| host | `workflows/p0/test/host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs from the same initial state and compares by result digest | 12 red until the draft lands |
+| host | `workflows/p0/test/host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs from the same initial state and compares by result digest | 12 pass |
+| host | `workflows/p0/test/recipe.host.test.mjs` | the documented coordinator recipe: the exact bash command template plus the three bounded `grep … \| tail -n 1` reads return the same reason, card and summary the host driver observes for that run | 1 pass |
 | prop | `workflows/p0/test/prop-engine.prop.test.mjs` | engine self-test: render determinism, seed replay, shrinks a planted violation to the minimal counterexample, replays it on both hosts, honours `cover`, counts discards | 10 pass |
-| prop | `workflows/p0/test/prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | 7 skipped until the draft lands |
-| acceptance | `workflows/p0/test/acceptance.test.mjs` | frozen-baseline byte-equality replay on a scratch copy (in-process) | red; skips when the store is absent |
-| compile | `workflows/p0/test/compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | 2 skipped until the draft lands |
+| prop | `workflows/p0/test/prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | 7 pass |
+| acceptance | `workflows/p0/test/acceptance.test.mjs` | frozen-baseline byte-equality replay on a scratch copy (in-process) | 1 pass; skips when the store is absent |
+| compile | `workflows/p0/test/compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | 2 pass |
 
 Support files:
 
@@ -208,15 +217,18 @@ Deferred tiers and known gaps:
   missing `input_ceiling_bytes`), and a 1-box stream.
 - §5 counts 15 outputs, but the baseline stream pins 14: `run-manifest.json.sha256` is
   neither pinned nor asserted yet.
-- Rerun idempotence without a reset (re-run in the same store without `--allow-overwrite`
-  → `frozen-artifact`) is not a case yet; the purity rerun resets the store by design.
+- Rerun idempotence without a reset is covered by the `resume-never-rewrites-different-bytes`
+  property: staging-compare accepts a byte-equal target (`ok`) and refuses only differing
+  bytes, so the old "a rerun is always `frozen-artifact`" reading no longer applies.
 - Card shape (≤20 lines) and checkpoint metadata shape are not asserted yet.
 - Model-turn cases (any `workflow.run`) are out of scope for the host tier: a model turn
   makes a case non-deterministic, so such a case must set `purity: false` and pin its
   records instead of a digest.
-- Three mutations stay unpinned until the operator decides: `preexisting-draft-equal` and
-  `preexisting-envelope-equal` (D4 staging-compare idempotence) and `p05-no-ceiling`
-  (envelope refusal token). Properties classify them instead of asserting a reason.
+- One mutation stays unpinned until the operator decides the envelope refusal token:
+  `p05-no-ceiling` (its derived p05 is regenerated by the workflow, so the run currently
+  reaches `ok`; the property classifies it). `preexisting-draft-equal` and
+  `preexisting-envelope-equal` are pinned `frozen-artifact`: the seed's own draft/envelope
+  are not byte-equal to the derived bytes, so staging-compare refuses them.
 
 ## Verification ladder (before any install)
 
@@ -240,7 +252,8 @@ Deferred tiers and known gaps:
 
 ## Open items for the build
 
-- `machine[]` in `join-draft/1`: keep empty (baseline) or record the pre-check verdict?
-  Proposal: keep empty — `verify join` owns the semantic record.
-- Overwrite policy: keep the `frozen-artifact` refusal; repairs pass `--allow-overwrite`
-  and are recorded as new envelope generations.
+- `machine[]` in `join-draft/1`: resolved — rows are derived for opaque descriptor units in
+  manifest order (`{unit_id, links: [], unresolved: null}`), empty when there are none.
+- Overwrite policy: resolved — staging-compare (promote absent-or-byte-equal, refuse only a
+  differing target), `join/join-draft.v1.json` and `run-manifest.json` frozen;
+  repairs pass `--allow-overwrite` and are recorded as new envelope generations.

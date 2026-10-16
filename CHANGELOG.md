@@ -2,6 +2,15 @@
 
 ## Unreleased (working tree)
 
+### 2026-10-16 — p0-close host workflow call site (docs + receipt proof)
+
+- **Call site documented.** The kernel names the `p0-close` host workflow as the producer of the merged join draft, the per-box p05 records and the `run-verification/1` envelope: one shell-only headless `pi` call from the coordinator, no model turn. Artifact *production* moves to shipped, hash-pinned engine-side tooling under `workflows/` (the same class as `chunker.mjs`, never a run-authored script); the acceptance decision stays coordinator-owned and `verify join` stays the sole mechanical boundary. Reason `ok` means artifacts promoted, never verified.
+- **Command template + read-back recipe.** `kernel/references/intake-and-scope.md` §0.3 "Merge/p05/envelope prep" carries the verbatim invocation (ten explicit flags rendered from frame values, absolute workflow token, `--workflow-time 420000`), the run-namespace receipt shape (`pi.stdout.jsonl`, `pi.stderr`, `invocation.json`), the three bounded `grep … | tail -n 1` reads (`workflow-exit`, `workflow-log`, `workflow-summary`) with the hardening rules, and the six-reason outcome mapping.
+- **Fail-closed prerequisite.** `libs/pi-driver/references/requirements-check.md` gains pre-pull row 11: the `/workflow` mechanism and `workflows/p0/p0-close.js` at the recorded engine revision with a matching sha256 must exist; missing or mismatched stops Phase 0, no fallback. The stage record (`libs/pi-driver/references/notebook-plan-contract.md`) and the frame's `prep` entry record the workflow pin, receipt ref/sha256, reason, evidence dir, bound `envelope_sha` and summary, plus the resolved engine checkout dir.
+- **No tool change.** `kernel/tools/*` bytes, schemas and exit codes are unchanged; `workflows/p0/SPEC.md` §Invocation points at the kernel recipe. `node workflows/run.mjs fast` stays green.
+- **Recipe proven on the real host.** `workflows/testkit/hostdriver.mjs` exposes its receipt parse as `observeReceipt`, and `workflows/p0/test/recipe.host.test.mjs` runs the documented command template plus the three bounded reads against one synthetic copy and asserts they return the same reason, card and summary the driver observes for that run (host tier 17/17).
+- **Docs:** `kernel/SKILL.md`, `kernel/references/intake-and-scope.md`, `libs/pi-driver/references/requirements-check.md`, `libs/pi-driver/references/notebook-plan-contract.md`, `workflows/p0/SPEC.md`.
+
 ### 2026-10-14 — finding confirmation pilot: early + text-stage adversarial confirmation (docs/schema only)
 
 - **Two surfaces, no fourth vector.** A pilot overlay adds selective adversarial checks of HIGH/thin V2/V3 findings between vector aggregation and the vector gate, and sentence-level checks of the rendered draft between drafting and `before_post`; opt-in via `finding_confirmation.mode: off | pilot`, confirmed-only publication, fail-closed unresolved routes. `kernel/references/finding-confirmation.md` is the normative reference.

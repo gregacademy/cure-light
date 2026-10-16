@@ -42,6 +42,11 @@ cure-light/
 ├── libs/pi-driver/           ← pi binding (notebook + handoff + model-groups)
 │   ├── SKILL.md
 │   └── references/           ← requirements-check, notebook-plan-contract
+├── workflows/                ← in-repo mechanical workflows
+│   ├── AUTHORING.md          ← entry point: authoring the drafts, specs and tests
+│   ├── run.mjs               ← tier runner (fast | host | prop | acceptance | compile)
+│   ├── p0/                   ← the p0-close workflow (spec, fixtures, cases, tests)
+│   └── testkit/              ← shared host harness (stub + real pi CLI) and CLIs
 ├── templates/KICKOFF.md      ← fill-in fields for a new episode
 ├── assets/                   ← finding-schema.json, child-pass-prompt-template
 ├── docs/

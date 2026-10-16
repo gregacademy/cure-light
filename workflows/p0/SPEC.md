@@ -1,0 +1,259 @@
+# workflows/p0 — p0-close build spec
+
+Entry point: [`../AUTHORING.md`](../AUTHORING.md) — the builder loop, the two test surfaces
+and the purity rules. This file specifies **what** `p0-close` must do; AUTHORING.md owns
+**how** a draft is built, driven and verified. Host verification facts:
+[`../testkit/HOST-HARNESS.md`](../testkit/HOST-HARNESS.md); generated-input semantics:
+[`prop/PROP-ENGINE.md`](prop/PROP-ENGINE.md).
+
+Status: **landed** (2026-10-16). The workflow is `workflows/p0/p0-close.js`, runs **by path**
+during development, and every tier is green: fast 17/17, host 17/17, prop 17/17,
+acceptance 1/1 (byte-exact baseline), compile 2/2. Design source of record:
+`cure-light-p0-close-workflow-proposal.md` (workspace root, outside this repo).
+
+## What it replaces
+
+`p0-close` replaces the ad-hoc merge/validate/p05 step (`ai070`) and the envelope/repair
+steps (`ai071`/`ai072`) with one deterministic script. It:
+
+- merges the box JSONL outputs into `join-draft/1`;
+- validates coverage, links and witnesses;
+- writes the per-box p05 records with real error content;
+- generates the frozen `run-verification/1` envelope with the pinned verifier.
+
+## Governance
+
+| Rule | Detail |
+|---|---|
+| In-repo only | host tooling ships under `workflows/`; `kernel/tools/*` stays untouched |
+| Sole acceptance boundary | `verify.mjs` stays byte-identical; `verify join` remains the mechanical acceptance boundary |
+| Copies only | all verification and live runs operate on copies; the real store and the frozen baseline stay untouched |
+| No install | no installation into `~/.pi/agent/workflows/` before verification and operator sign-off |
+| Controlled arm | not used by the controlled replication arm without explicit operator approval |
+| Author contract | exactly one `return defineWorkflow((workflow) => { ... })`; synchronous; no imports; `workflow.shell` as the only I/O; effects serial; model handles (`run`, `classify`, `handoff`, `new`, `entries`) unused |
+
+## Invocation
+
+```
+/workflow workflows/p0/p0-close.js \
+  --store /…/store/<run> \
+  --verifier /…/kernel/tools/verify.mjs \
+  --verifier-sha256 <64 hex> --chunker-sha256 <64 hex> \
+  --input-ceiling-bytes 196608 \
+  --operator-ref operator:<name>/<run> \
+  --run-id chunkhound/pi-schematic#72 --review-state s1 \
+  --base-oid <40 hex> --subject-oid <40 hex> \
+  [--allow-overwrite]
+```
+
+- Args accept `--flag value` and `--flag=value`; the `/workflow` first token selects the
+  file. Unknown or missing required flags → `needs-input` before any write.
+- No hidden engine path and no pin defaults: every pin is an explicit flag.
+- Shell discipline: single-quoted paths via `quote()`; collision-checked heredoc
+  delimiters; `parseTail` for the one JSON status line; refuse any result with
+  `truncated === true`.
+- Evidence dir per run: `"$PWD/.tmp/<workflow>/<UTCstamp>-$$"` — never overwritten, never
+  deleted by the script.
+- Checkpoints after the args gate and at the end; runs are bounded with `--workflow-time`
+  (ms) plus shell timeouts.
+- **Pipeline call.** The kernel coordinator also calls this workflow headlessly —
+  `pi --offline --no-session --mode json --print … --workflow-time 420000
+  "/workflow <abs>/workflows/p0/p0-close.js <verbatim args>"` — with cwd a writable
+  run-scoped directory and the workflow token absolute (never the read-only engine
+  checkout). The receipt handling (the run-namespace receipt dir, the three bounded
+  `grep … | tail -n 1` reads, the six-reason routing) lives in the kernel document
+  [`kernel/references/intake-and-scope.md`](../../kernel/references/intake-and-scope.md)
+  §0.3 "Merge/p05/envelope prep", not here.
+
+## Required inputs
+
+Under `--store`:
+
+- `units/units2/manifest.json`
+- `claims/claims-draft.v3.json`
+- `join/claims-list.json`
+- `join/box-*.assignment.json` (≥1, sorted by `box_id`)
+- `join/box-*.instructions.md`
+- `join/box-*.jsonl`
+
+Pre-write validation: all assignments share one `input_ceiling_bytes` equal to the flag;
+`output_path`, `units_dir` and `manifest_ref` resolve; a payload file exists for every
+unit. Any mismatch → `needs-input`.
+
+## Steps
+
+0. **Args gate** — store probe (`test -d`); evidence dir; `node --version` probe.
+1. **Verifier identity** — `sha256sum "$verifier"` must equal `--verifier-sha256`;
+   mismatch → `verifier-pin-mismatch` with no writes.
+2. **Merge helper** — materialize `merge.cjs` (self-contained Node, no dependencies, no
+   backticks) into the evidence dir and run
+   `node merge.cjs --store … --staging … [--allow-overwrite]`. The helper:
+   - reads manifest order and payloads (`units_dir` + basename of `unit.file`), claim ids,
+     claims-list, assignments, instructions and box JSONL;
+   - builds `join-draft/1` with the `ai070` field set (`schema_version`, `run`,
+     `review_state`, `base_oid`, `subject_oid`,
+     `units_manifest{ref,sha256,schema_version,unit_count}`, `boxes[]`, `units[]` sorted to
+     manifest order, `machine[]`, `candidate_unclaimed[]`);
+   - validates: exactly one row per manifest unit and only known units; row order equal to
+     the assignment `units`; known claim ids; `closeness`/`role_hint` enums; witness
+     single-line, ≤160 chars, byte-exact line-start containment in the payload
+     (`witness_ok`); duplicate `(unit_id, claim_id)` pairs counted; `unresolved` handling;
+     zero-link unit/claim tallies;
+   - writes draft and p05 records into the staging dir only; `run-manifest.json` is not yet
+     touched;
+   - p05 records carry real `errors`, `error_count`, `duplicate_pairs`; the evidence budget
+     keeps the `ai072` key order (`input_ceiling_bytes, unit_bytes, claims_list_bytes,
+     instructions_bytes, box_input_bytes, headroom_bytes, output_bytes, output_links`);
+   - prints one JSON digest line:
+     `{ok, units, links, error_count, errors[≤10], draft{path,bytes,sha256}, p05[], warnings, non_ascii}`.
+3. **Digest cross-check** — sum of box `unit_count` equals the manifest unit count; sum of
+   box links equals digest links; draft sha256 is 64 hex. `ok !== true` →
+   `validation-failed` with the store untouched and samples in the card.
+4. **Promotion** — copy staged artifacts into the store (`cp` + `cmp`), tmp+rename inside
+   the store; existing targets are refused unless `--allow-overwrite` → `frozen-artifact`.
+5. **Envelope** —
+   `node "$verifier" envelope --run "$store" --operator-ref … --chunker-sha256 … --input-ceiling-bytes … > "$staging/run-manifest.json"`;
+   `ok === true` required (else `evidence-failed`, stderr tail ≤300 chars in the card).
+   Read back (`cat` + `JSON.parse`): `schema_version == "run-verification/1"` and the
+   embedded `verifier.sha256` equals the pin. Promote, then write
+   `run-manifest.json.sha256`.
+6. **Checkpoint and exit** — checkpoint `{phase:"p0-close", units, links, draft_sha,
+   envelope_sha}`; card (≤20 lines); `exit({reason:"ok", draft_sha, envelope_sha, units,
+   links, paths})`.
+
+## Exit reasons
+
+| Reason | Trigger |
+|---|---|
+| `ok` | every step passed |
+| `needs-input` | args gate, store probe, or pre-write mismatch |
+| `verifier-pin-mismatch` | `sha256sum "$verifier"` differs from `--verifier-sha256` |
+| `validation-failed` | merge digest `ok !== true` |
+| `frozen-artifact` | existing target and no `--allow-overwrite` |
+| `evidence-failed` | envelope `ok !== true` |
+
+Reserved tokens (e.g. `cost-limit`) are never authored. No partial store state on any
+failure path: helpers write to staging, promotion uses tmp+rename, and the store keeps its
+earlier bytes.
+
+## Outputs and byte-equality acceptance
+
+15 outputs: `join/join-draft.v1.json`, 12 × `join/box-*.p05-{check,evidence}.json`,
+`run-manifest.json`, `run-manifest.json.sha256`.
+
+Baseline store (`$CURE_LIGHT_BASELINE_STORE`, default
+`/workspaces/chunkhound_workspace/store/cure-light-pi-schematic-pr72-s1/`); the acceptance
+tier pins all 14 captured artifacts — excerpt:
+
+| Artifact | Baseline sha256 |
+|---|---|
+| `join/join-draft.v1.json` | `4b731b606cc69ea9633c75a6c06ef030515af97c8a070d935279a71b1d9bd91b` |
+| `run-manifest.json` | `89fff51c821a3ca4d3440bbe31fb462b4ce45bdf6e1b4eb15b75ed1df756651c` |
+| `join/box-0000.p05-check.json` | `87ce8ee78444915df08a23215fa3ea1f01f4ff86a366e4f4bf9441a7d311582c` |
+| `join/box-0000.p05-evidence.json` | `1cce53c718e2c9000b2a6cfdc6345d030711de610238bc5db2dd5011b576b8e1` |
+
+Formatting pinch points to implement deliberately: `indent=2`; the draft has **no**
+trailing newline while p05 files have one; Python `json.dumps` escapes non-ASCII as
+`\uXXXX` (Node must reproduce `ensure_ascii`); the p05 evidence key order is `ai072`'s;
+envelope bytes are the tool's (identical inputs and args ⇒ identical bytes). The
+`non_ascii` digest flag exists to catch latent divergence. Sizes are verified with
+`wc -c`; the digest line and the envelope read are clip-safe.
+
+Bounds: merge ≤300 s; envelope ≤120 s.
+
+## Defect classes closed by construction
+
+Classes from the mechanism assessment:
+
+- D2: p05 records carry real error fields.
+- D3: `ok`/`exitCode` come from the shell handle, never from `$?`.
+- D5: the dead statement is gone.
+- D6: a row-order mismatch is a validation error, never a silent re-sort.
+- D1 class: payload paths come from `units_dir` + basename, so the bad path class cannot
+  recur.
+- Pre-freeze refusal: `input_ceiling_bytes` is written on the first pass.
+
+## Tests and tiers
+
+Tier runner: `node workflows/run.mjs fast|acceptance|compile|host|prop|all` (no
+package.json in this repo, so `run.mjs` owns the `node --test` globs). The build loop and
+the evidence-reading recipes are in AUTHORING.md §The builder loop and §Run and read.
+
+| Tier | File | Role | State (2026-10-16) |
+|---|---|---|---|
+| fast | `workflows/p0/test/streams.test.mjs` | fixture sanity | 3 pass |
+| fast | `workflows/testkit/harness.test.mjs` | stub-host self-test | 3 pass |
+| fast | `workflows/p0/test/contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 pass |
+| host | `workflows/testkit/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real `pi` CLI, purity rerun, and stub≡host digest equality | 4 pass |
+| host | `workflows/p0/test/host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs from the same initial state and compares by result digest | 12 pass |
+| host | `workflows/p0/test/recipe.host.test.mjs` | the documented coordinator recipe: the exact bash command template plus the three bounded `grep … \| tail -n 1` reads return the same reason, card and summary the host driver observes for that run | 1 pass |
+| prop | `workflows/p0/test/prop-engine.prop.test.mjs` | engine self-test: render determinism, seed replay, shrinks a planted violation to the minimal counterexample, replays it on both hosts, honours `cover`, counts discards | 10 pass |
+| prop | `workflows/p0/test/prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | 7 pass |
+| acceptance | `workflows/p0/test/acceptance.test.mjs` | frozen-baseline byte-equality replay on a scratch copy (in-process) | 1 pass; skips when the store is absent |
+| compile | `workflows/p0/test/compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | 2 pass |
+
+Support files:
+
+| File | Role |
+|---|---|
+| `workflows/p0/fixtures/streams.mjs` | synthetic + baseline streams, fault injection, CLI |
+| `workflows/testkit/harness.mjs` | stub host: real shell, in-memory notebook, `E_WORKFLOW_MISSING` for a missing draft |
+| `workflows/p0/testkit.mjs` | draft path, pinned tool hashes, canonical invocation |
+| `workflows/p0/cases.mjs` | the sealed case table |
+| `workflows/testkit/casekit.mjs` | runner, purity digest, report |
+| `workflows/testkit/hostdriver.mjs` | real pi CLI driver |
+| `workflows/testkit/host-run.mjs` | case CLI for agents: groups, `--json`, `--live` |
+| `workflows/p0/prop/*` | property engine: store specs, mutation registry, generator, shrinker, runner |
+| `workflows/p0/prop-run.mjs` | property CLI: `--list`, `--cases`, `--seed`, `--spec`, `--json` |
+
+The fast tier keeps the sealed contracts exactly as authored; the host tier replays the
+same case objects, so a case is written once and proven twice — under the stub host and
+under the real one. Real host runs never happen by default (seconds each).
+
+Deferred tiers and known gaps:
+
+- The §7 fault matrix is wider than the current fixtures: extra row, zero-link unit,
+  unresolved unit, mid-line / >160-char / multi-line witness, envelope refusal (p05
+  missing `input_ceiling_bytes`), and a 1-box stream.
+- §5 counts 15 outputs, but the baseline stream pins 14: `run-manifest.json.sha256` is
+  neither pinned nor asserted yet.
+- Rerun idempotence without a reset is covered by the `resume-never-rewrites-different-bytes`
+  property: staging-compare accepts a byte-equal target (`ok`) and refuses only differing
+  bytes, so the old "a rerun is always `frozen-artifact`" reading no longer applies.
+- Card shape (≤20 lines) and checkpoint metadata shape are not asserted yet.
+- Model-turn cases (any `workflow.run`) are out of scope for the host tier: a model turn
+  makes a case non-deterministic, so such a case must set `purity: false` and pin its
+  records instead of a digest.
+- One mutation stays unpinned until the operator decides the envelope refusal token:
+  `p05-no-ceiling` (its derived p05 is regenerated by the workflow, so the run currently
+  reaches `ok`; the property classifies it). `preexisting-draft-equal` and
+  `preexisting-envelope-equal` are pinned `frozen-artifact`: the seed's own draft/envelope
+  are not byte-equal to the derived bytes, so staging-compare refuses them.
+
+## Verification ladder (before any install)
+
+1. `node --check` in a CJS scope and canonical compile against the pi-schematic checkout
+   (`PI_SCHEMATIC_CHECKOUT`, default
+   `~/.pi/agent/git/github.com/chunkhound/pi-schematic`) — the compile tier.
+2. Simulation suite: streams plus the fault matrix (contract tier).
+3. Host replay of the same cases, purity included — `node workflows/run.mjs host`.
+   Generated-input properties over the same contracts — `node workflows/run.mjs prop`.
+4. Baseline replay on a scratch copy (acceptance tier and `baseline-replay` in the host tier).
+5. One bounded live run by path against a **copy**
+   (`--workflow-time 300000`), evidence kept — `workflows/testkit/host-run.mjs --live`.
+6. Record the revision sha in the proposal and the runbook after the build.
+
+## Non-goals
+
+- No packing, assignments or instructions rendering (deferred item 6).
+- No child dispatch: `verify join` stays coordinator `run`-turn/spawn work.
+- No verdict capture (separate slice).
+- No new store artifacts on the clean path.
+
+## Open items for the build
+
+- `machine[]` in `join-draft/1`: resolved — rows are derived for opaque descriptor units in
+  manifest order (`{unit_id, links: [], unresolved: null}`), empty when there are none.
+- Overwrite policy: resolved — staging-compare (promote absent-or-byte-equal, refuse only a
+  differing target), `join/join-draft.v1.json` and `run-manifest.json` frozen;
+  repairs pass `--allow-overwrite` and are recorded as new envelope generations.

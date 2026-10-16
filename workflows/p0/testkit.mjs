@@ -7,7 +7,7 @@
 //   test/acceptance.test.mjs (frozen-baseline replay, opt-in tier)
 //   test/compile.test.mjs    (toolchain conformance, opt-in tier)
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readJson, tempDir } from "../../kernel/tools/verify-testkit.mjs";
@@ -22,6 +22,23 @@ const shaFile = (abs) => createHash("sha256").update(readFileSync(abs)).digest("
 export const VERIFIER_SHA = shaFile(VERIFIER);
 export const CHUNKER_SHA = shaFile(CHUNKER);
 
+/** The seed's single-box pilot ceiling; the single-box synthetic stream keeps the seed value. */
+export const SEED_PILOT_CEILING = 196608;
+
+/**
+ * The canonical `--input-ceiling-bytes` value for a store. The two-box synthetic stream is
+ * packed under a derived greedy ceiling (`greedySplit` in fixtures/streams.mjs), so the
+ * value is read from the FIRST box; a single-box store keeps the seed's constant. Either
+ * way the `ceiling-drift` mutation (which drifts the last box) disagrees with the flag.
+ */
+export function recordedCeiling(runRoot) {
+  const names = readdirSync(path.join(runRoot, "join"))
+    .filter((candidate) => /^box-.*\.assignment\.json$/.test(candidate))
+    .sort();
+  if (names.length <= 1) return SEED_PILOT_CEILING;
+  return readJson(runRoot, `join/${names.at(0)}`).input_ceiling_bytes;
+}
+
 /** The canonical invocation against a materialized run root (proposal §3). */
 export function workflowArgs(runRoot, overrides = {}) {
   const manifest = readJson(runRoot, "units/units2/manifest.json");
@@ -31,7 +48,7 @@ export function workflowArgs(runRoot, overrides = {}) {
     `--verifier ${VERIFIER}`,
     `--verifier-sha256 ${overrides.verifierSha ?? VERIFIER_SHA}`,
     `--chunker-sha256 ${CHUNKER_SHA}`,
-    `--input-ceiling-bytes ${overrides.ceiling ?? 196608}`,
+    `--input-ceiling-bytes ${overrides.ceiling ?? recordedCeiling(runRoot)}`,
     `--operator-ref ${overrides.operatorRef ?? "fixture:p0-close"}`,
     `--run-id ${overrides.runId ?? "fixture/p0-close"}`,
     `--review-state ${overrides.reviewState ?? "s1"}`,

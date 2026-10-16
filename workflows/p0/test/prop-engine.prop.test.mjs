@@ -124,7 +124,12 @@ describe("property engine", () => {
   });
 
   it("never reports a vacuous pass when the workflow under test is absent", () => {
-    const def = findProperty("mutation-program-reaches-its-sealed-reason");
+    // The red-first phase relied on workflows/p0/p0-close.js being absent; now that the draft
+    // exists, synthesize absence so the missing-workflow contract stays covered.
+    const def = {
+      ...findProperty("mutation-program-reaches-its-sealed-reason"),
+      workflow: path.join(os.tmpdir(), "cure-light-absent-workflow.js"),
+    };
     const result = runSingleSpec(def, { schema: "store-spec/1", boxes: 1, mutations: [{ name: "preexisting-draft-equal", params: {} }] }, { driver: "stub" });
     assert.equal(result.ok, false, "a replay with no workflow to run reported a pass");
     assert.match(result.skipped ?? "", /workflow draft missing/);

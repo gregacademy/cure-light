@@ -38,7 +38,9 @@ export function storeCaseSpec(spec, { workflow, args, id = "prop-trial" }) {
     workflow,
     prepare: (caseDir) => renderStore(spec, caseDir),
     args: (runRoot, overrides) => (typeof args === "function" ? args(runRoot, overrides) : args),
-    purity: false,
+    // One generated store, one run: no host rerun here. The exit payload still carries the
+    // run-scoped evidence path, so declare it volatile exactly as the sealed cases do.
+    purity: { ignore: ["paths"] },
   };
 }
 

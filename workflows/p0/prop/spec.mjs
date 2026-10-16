@@ -24,6 +24,21 @@ function genMutation(rng, names) {
 }
 
 /**
+ * Drop picks whose effect would be erased by an earlier pick in the same program (a declared
+ * `cancels` pair, e.g. a link-clear mutation erasing a planted witness error). The stage-rule
+ * expectation then holds for every generated program.
+ */
+function dropCancellingPicks(names) {
+  const kept = [];
+  for (const name of names) {
+    const conflicts = MUTATIONS[name]?.cancels ?? [];
+    const clashes = kept.some((other) => conflicts.includes(other) || (MUTATIONS[other]?.cancels ?? []).includes(name));
+    if (!clashes) kept.push(name);
+  }
+  return kept;
+}
+
+/**
  * Default generator: a legal-vs-mutated mix over the mutation vocabulary.
  * `probeMax` > 0 injects `.probe.json` (engine self-tests only).
  */
@@ -31,7 +46,7 @@ export function genStoreSpec({ mutationNames = MUTATION_NAMES, maxMutations = 3,
   return {
     sample(rng) {
       const mutationCount = sample(oneOf([nat(1), nat(2), nat(maxMutations)]), rng, 0);
-      const picked = sample(subset(mutationNames, { min: mutationCount, max: mutationCount }), rng, 0);
+      const picked = dropCancellingPicks(sample(subset(mutationNames, { min: mutationCount, max: mutationCount }), rng, 0));
       const spec = { schema: SPEC_SCHEMA, boxes: rng.pick(boxes), mutations: picked.map((name) => ({ name, params: genParams(MUTATIONS[name]?.params, rng) })) };
       if (probeMax > 0) spec.probe = { n: rng.int(probeMax + 1) };
       return spec;

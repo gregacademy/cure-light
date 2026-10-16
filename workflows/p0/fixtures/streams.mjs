@@ -15,8 +15,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   artifactSha,
+  editJson,
   materializeRun,
   readBoxRows,
+  readBytes,
+  readJson,
   splitIntoTwoBoxes,
   tempDir,
   writeBoxRows,
@@ -29,8 +32,42 @@ export const BASELINE_STORE_DEFAULT =
 
 const BOX_0000 = "join/box-0000.jsonl";
 const BOX_0001 = "join/box-0001.jsonl";
+const BOX_0000_ASSIGNMENT = "join/box-0000.assignment.json";
+const BOX_0000_INSTRUCTIONS = "join/box-0000.instructions.md";
 const JOIN_DRAFT = "join/join-draft.v1.json";
 const RUN_MANIFEST = "run-manifest.json";
+
+/**
+ * Derive a legal greedy two-box packing of the seed inventory.
+ *
+ * The verifier rejects a current box that could have held its neighbour's first unit
+ * (`join.budget`, J8), and a two-box packing is only greedy when the prefix fills box-0000
+ * while the remainder still fits the same ceiling. The seed inventory is smaller than the
+ * seed's 196608-byte pilot ceiling, so a greedy split needs a derived ceiling: pick the
+ * split index nearest the middle whose remainder is smaller than the next prefix, then set
+ * the ceiling so box-0001's input exactly fills it (box-0000 then has less headroom than
+ * the next unit needs).
+ */
+function greedySplit(runRoot) {
+  const manifest = readJson(runRoot, "units/units2/manifest.json");
+  const byteLen = new Map(manifest.units.map((unit) => [unit.unit_id, unit.byte_len]));
+  const ids = readBoxRows(runRoot, BOX_0000).map((row) => row.unit_id);
+  const total = ids.reduce((sum, id) => sum + byteLen.get(id), 0);
+  const assignment = readJson(runRoot, BOX_0000_ASSIGNMENT);
+  const fixed = assignment.claims_list_bytes + readBytes(runRoot, BOX_0000_INSTRUCTIONS).length;
+  let prefix = 0;
+  let best = null;
+  for (let index = 1; index < ids.length; index++) {
+    prefix += byteLen.get(ids[index - 1]);
+    const rest = total - prefix;
+    const next = byteLen.get(ids[index]);
+    if (rest >= prefix + next) continue; // the next unit would still fit: not greedy
+    const score = Math.abs(index - ids.length / 2);
+    if (best === null || score < best.score) best = { splitIndex: index, ceiling: rest + fixed, score };
+  }
+  if (best === null) throw new Error("no greedy two-box split exists for this seed inventory");
+  return { splitIndex: best.splitIndex, ceiling: best.ceiling };
+}
 
 /** All fault names the synthetic stream understands. */
 export const FAULT_NAMES = [
@@ -98,7 +135,12 @@ export function applyFault(runRoot, name) {
 export function syntheticStream(label = "p0-close", { boxes = 2, fault = null } = {}) {
   const runRoot = materializeRun(label);
   if (boxes === 2) {
-    splitIntoTwoBoxes(runRoot);
+    // A two-box stream must be a legal greedy packing, so the split is greedy and the
+    // ceiling is the one that makes it greedy (see greedySplit); the seed's own ceiling
+    // only fits the whole inventory in a single box.
+    const { splitIndex, ceiling } = greedySplit(runRoot);
+    editJson(runRoot, BOX_0000_ASSIGNMENT, (assignment) => { assignment.input_ceiling_bytes = ceiling; });
+    splitIntoTwoBoxes(runRoot, splitIndex);
     // splitIntoTwoBoxes leaves a single shared instructions file; make the common
     // per-box layout explicit and drop the seed's single-box global p05 records.
     cpSync(path.join(runRoot, "join/box-0000.instructions.md"), path.join(runRoot, "join/box-0001.instructions.md"));

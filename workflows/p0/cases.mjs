@@ -27,7 +27,7 @@ import {
   snapshotTree,
 } from "../../kernel/tools/verify-testkit.mjs";
 import { BASELINE_STORE_DEFAULT, baselineStream, syntheticStream } from "./fixtures/streams.mjs";
-import { DRAFT, VERIFIER, VERIFIER_SHA, workflowArgs } from "./testkit.mjs";
+import { DRAFT, VERIFIER, VERIFIER_SHA, recordedCeiling, workflowArgs } from "./testkit.mjs";
 
 /** Host runs are bounded: the workflow has checkpoints, so the soft time target applies. */
 const HOST_FLAGS = Object.freeze(["--workflow-time", "300000"]);
@@ -96,7 +96,9 @@ export const P0_CLOSE_CASES = [
         assert.equal(evidence.error_count, 0);
         assert.deepEqual(evidence.errors, []);
         assert.equal(evidence.duplicate_pairs, 0);
-        assert.equal(evidence.budget.input_ceiling_bytes, 196608);
+        // The fixture derives the greedy two-box ceiling, so assert against the store's
+        // recorded pilot ceiling instead of the seed's single-box 196608.
+        assert.equal(evidence.budget.input_ceiling_bytes, recordedCeiling(runRoot));
       }
 
       const envelope = readJson(runRoot, "run-manifest.json");

@@ -18,7 +18,7 @@
 //   zero-link / unresolved rows are LEGAL row states, not errors
 import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
-import { readBoxRows, readBytes, readJson, unitPayloadAbs, writeBoxRows, writeBytes, writeJson, SEED_DIR } from "../../../kernel/tools/verify-testkit.mjs";
+import { artifactSha, readBoxRows, readBytes, readJson, unitPayloadAbs, writeBoxRows, writeBytes, writeJson, SEED_DIR } from "../../../kernel/tools/verify-testkit.mjs";
 
 export class MutationNotApplicable extends Error {
   constructor(message) {
@@ -29,6 +29,7 @@ export class MutationNotApplicable extends Error {
 }
 
 const MANIFEST = "units/units2/manifest.json";
+const CAPTURE = "claims/sources/capture-manifest.json";
 const JOIN_DRAFT = "join/join-draft.v1.json";
 const RUN_MANIFEST = "run-manifest.json";
 const BOX = (id) => `join/${id}.jsonl`;
@@ -58,16 +59,50 @@ function dropUnits(runRoot, { count }) {
   const ids = manifest.units.map((unit) => unit.unit_id);
   const dropped = new Set(ids.slice(Math.max(1, ids.length - count)));
   if (dropped.size === 0) throw new MutationNotApplicable("nothing left to drop");
-  const droppedBytes = manifest.units.filter((unit) => dropped.has(unit.unit_id)).reduce((sum, unit) => sum + unit.byte_len, 0);
+  const droppedUnits = manifest.units.filter((unit) => dropped.has(unit.unit_id));
+  const payloadPaths = droppedUnits.map((unit) => unitPayloadAbs(runRoot, unit.unit_id));
   manifest.units = manifest.units.filter((unit) => !dropped.has(unit.unit_id));
-  manifest.counts.units = manifest.units.length;
-  manifest.counts.total_bytes -= droppedBytes;
+  recomputeUnitCounts(manifest);
   writeJson(runRoot, MANIFEST, manifest);
-  const byteLen = new Map(manifest.units.map((unit) => [unit.unit_id, unit.byte_len]));
+  // A legal inventory never leaves a payload file unassigned (units.payload), and the
+  // changed-file sweep must still match the capture inventory (units.counts).
+  for (const abs of payloadPaths) rmSync(abs, { force: true });
+  const survivingPaths = new Set(manifest.units.map((unit) => unit.path));
+  const capture = readJson(runRoot, CAPTURE);
+  if (capture.changed_files.some((path) => !survivingPaths.has(path))) {
+    capture.changed_files = capture.changed_files.filter((path) => survivingPaths.has(path));
+    capture.changed_files_count = capture.changed_files.length;
+    writeJson(runRoot, CAPTURE, capture);
+  }
   for (const boxId of listBoxes(runRoot)) {
     writeBoxRows(runRoot, BOX(boxId), rowsOf(runRoot, boxId).filter((row) => !dropped.has(row.unit_id)));
+  }
+  resealAssignments(runRoot);
+}
+
+/** Recompute the units-manifest counts from its own units array (the verifier re-derives them). */
+function recomputeUnitCounts(manifest) {
+  manifest.counts.units = manifest.units.length;
+  manifest.counts.files = new Set(manifest.units.map((unit) => unit.path)).size;
+  manifest.counts.line_split_units = manifest.units.filter((unit) => unit.boundary_kind === "line-split").length;
+  manifest.counts.total_bytes = manifest.units.reduce((sum, unit) => sum + unit.byte_len, 0);
+}
+
+/**
+ * Keep the assignment facts coherent after a manifest edit. The envelope generator re-binds
+ * `manifest_sha256` to the exact manifest bytes and refuses a mismatch, and the delegated
+ * join re-binds `unit_count`/`total_unit_bytes`; a mutation that models a legal store must
+ * therefore write both, or the store is ill-formed rather than legal.
+ */
+function resealAssignments(runRoot) {
+  const manifest = readJson(runRoot, MANIFEST);
+  const byteLen = new Map(manifest.units.map((unit) => [unit.unit_id, unit.byte_len]));
+  const known = new Set(manifest.units.map((unit) => unit.unit_id));
+  const manifestSha = artifactSha(runRoot, MANIFEST);
+  for (const boxId of listBoxes(runRoot)) {
     const assignment = readJson(runRoot, ASSIGNMENT(boxId));
-    assignment.units = assignment.units.filter((id) => !dropped.has(id));
+    assignment.manifest_sha256 = manifestSha;
+    assignment.units = assignment.units.filter((id) => known.has(id));
     assignment.unit_count = assignment.units.length;
     assignment.total_unit_bytes = assignment.units.reduce((sum, id) => sum + (byteLen.get(id) ?? 0), 0);
     writeJson(runRoot, ASSIGNMENT(boxId), assignment);
@@ -184,14 +219,17 @@ function nonAscii(runRoot) {
   const unit = manifest.units[0];
   const abs = unitPayloadAbs(runRoot, unit.unit_id);
   const before = readFileSync(abs);
-  const suffix = Buffer.from("\n# snowman \u2603 \u00e9\u00e8\n", "utf8");
+  // A valid diff content line, so the payload stays diff-framed (U7) while carrying
+  // non-ASCII bytes through the escape-sensitive writers.
+  const suffix = Buffer.from("\n+\t# snowman \u2603 \u00e9\u00e8\n", "utf8");
   const after = Buffer.concat([before, suffix]);
   writeBytes(runRoot, abs.slice(`${runRoot}/`.length), after);
-  const counts = readJson(runRoot, MANIFEST);
-  const target = counts.units.find((candidate) => candidate.unit_id === unit.unit_id);
-  counts.counts.total_bytes += after.length - target.byte_len;
+  const updated = readJson(runRoot, MANIFEST);
+  const target = updated.units.find((candidate) => candidate.unit_id === unit.unit_id);
+  updated.counts.total_bytes += after.length - target.byte_len;
   target.byte_len = after.length;
-  writeJson(runRoot, MANIFEST, counts);
+  writeJson(runRoot, MANIFEST, updated);
+  resealAssignments(runRoot);
 }
 
 export const MUTATIONS = {
@@ -248,6 +286,9 @@ export const MUTATIONS = {
     stage: "merge",
     summary: "a row with no links and no unresolved note (legal: it becomes candidate_unclaimed)",
     expected: "ok",
+    // Clearing the first link row erases a claim/witness error planted there by a
+    // link-error mutation, so the pair would not reach the stage-rule reason.
+    cancels: ["duplicate-pair", "unknown-claim", "bad-witness"],
     params: {},
     apply: zeroLink,
   },
@@ -255,6 +296,7 @@ export const MUTATIONS = {
     stage: "merge",
     summary: "a row with links cleared and an unresolved note (legal row state)",
     expected: "ok",
+    cancels: ["duplicate-pair", "unknown-claim", "bad-witness"],
     params: {},
     apply: unresolvedRow,
   },
@@ -289,9 +331,9 @@ export const MUTATIONS = {
   },
   "preexisting-draft-equal": {
     stage: "freeze",
-    summary: "the byte-equal joined draft from the seed already exists",
-    expected: null,
-    note: "D4 staging-compare idempotence: promote-only-if-equal would accept, strict refuse would not",
+    summary: "the seed draft is pre-placed: a legitimate-looking but stale draft (no `machine`, old key order)",
+    expected: "frozen-artifact",
+    note: "D4 staging-compare refuses a differing target; the seed fixture's draft is not byte-equal to the `join-draft/1` this build derives (the seed predates the ai070 field set), so this pins the refuse-different half. The accept-equal half is covered by `resume-never-rewrites-different-bytes` and the overwrite case.",
     params: {},
     apply: (runRoot) => copyFromSeed(runRoot, JOIN_DRAFT),
   },
@@ -305,8 +347,8 @@ export const MUTATIONS = {
   "preexisting-envelope-equal": {
     stage: "freeze",
     summary: "the seed's envelope already exists (different bytes once the store changes)",
-    expected: null,
-    note: "envelope overwrite policy is only pinned for differing bytes",
+    expected: "frozen-artifact",
+    note: "the seed envelope pins seed refs and a seed operator_ref, so it is never byte-equal to the derived envelope; staging-compare refuses the differing target (D4).",
     params: {},
     apply: (runRoot) => copyFromSeed(runRoot, RUN_MANIFEST),
   },
@@ -333,22 +375,24 @@ export function applyMutations(runRoot, mutations) {
   }
 }
 
+export const STAGE_ORDER = ["prewrite", "pin", "merge", "freeze", "envelope"];
+
 /**
  * The pinned reason for a mutation program, or null when the spec does not decide it.
  *
- * The core checks in stages, so the EARLIEST stage that any applied mutation touches decides
- * the outcome: a pre-write mismatch refuses before the merge ever runs. Within that stage an
- * unpinned expectation (D4-style ambiguity) makes the whole program unpinned.
+ * The core checks in stages, so the EARLIEST stage that refuses decides the outcome: a
+ * pre-write mismatch refuses before the merge ever runs. Stages whose mutations are all
+ * legal (`expected: "ok"`) are passed through, exactly as the workflow does, so a later
+ * refusal is not masked by an earlier legal mutation. Within a refusing stage an unpinned
+ * expectation (D4-style ambiguity) makes the whole program unpinned.
  */
-export const STAGE_ORDER = ["prewrite", "pin", "merge", "freeze", "envelope"];
-
 export function expectedReason(mutations) {
   for (const stage of STAGE_ORDER) {
     const involved = mutations.map(({ name }) => MUTATIONS[name]).filter((mutation) => mutation && mutation.stage === stage);
     if (involved.length === 0) continue;
     if (involved.some((mutation) => mutation.expected === null)) return null;
     const refusal = involved.find((mutation) => mutation.expected !== "ok");
-    return refusal ? refusal.expected : "ok";
+    if (refusal) return refusal.expected;
   }
   return "ok";
 }

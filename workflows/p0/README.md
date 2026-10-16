@@ -150,6 +150,7 @@ Tier runner (no package.json in this repo, so `run.mjs` owns the `node --test` g
 ```bash
 node workflows/test/run.mjs             # fast (default) — the build loop, stub host
 node workflows/test/run.mjs host        # the same cases through the real pi CLI (opt-in)
+node workflows/test/run.mjs prop        # generated-input properties (opt-in, QuickCheck-style)
 node workflows/test/run.mjs acceptance  # frozen-baseline byte-equality replay
 node workflows/test/run.mjs compile     # draft toolchain conformance
 node workflows/test/run.mjs all
@@ -163,6 +164,8 @@ node workflows/test/run.mjs all
 | host | `workflows/test/p0-close.host.test.mjs` | the identical cases + the baseline replay driven through the real `pi` CLI (`--mode json`), each pure case re-run from the same initial state and compared by result digest | red until the draft lands |
 | host | `workflows/test/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real host, purity rerun, and stub≡host digest equality | 4 pass |
 | acceptance | `workflows/test/p0-close.acceptance.test.mjs` | proposal §5 byte-equality replay on a scratch copy (in-process) | red; skips when the store is absent |
+| prop | `workflows/test/p0-close.prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | skips until the draft lands |
+| prop | `workflows/test/prop-engine.prop.test.mjs` | property engine self-test: render determinism, seed replay, shrinks a planted violation to the minimal counterexample, replays it on both hosts, honours `cover`, counts discards | 7 pass |
 | compile | `workflows/test/p0-close.compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | skipped until the draft lands |
 
 Support: `workflows/test/streams.mjs` (synthetic + baseline streams, fault injection, CLI),
@@ -171,8 +174,10 @@ Support: `workflows/test/streams.mjs` (synthetic + baseline streams, fault injec
 path, pinned tool hashes, canonical invocation), `workflows/test/cases.mjs` (the sealed
 case table), `workflows/test/casekit.mjs` (runner, purity digest, report),
 `workflows/test/hostdriver.mjs` (real pi CLI driver), `workflows/test/host-run.mjs` (CLI
-for an agent: groups, `--json`, `--live`). Design and verified host facts:
-`workflows/test/HOST-HARNESS.md`.
+for an agent: groups, `--json`, `--live`), `workflows/test/prop/*` (property engine: store
+specs, mutation registry, generator, shrinker, runner), `workflows/test/prop-run.mjs`
+(property CLI: `--list`, `--cases`, `--seed`, `--spec`, `--json`). Design and verified host
+facts: `workflows/test/HOST-HARNESS.md`; property engine spec: `workflows/test/PROP-ENGINE.md`.
 
 The fast tier keeps the sealed contracts exactly as authored; the host tier replays the
 same case objects, so a case is written once and proven twice — under the stub host and
@@ -191,6 +196,9 @@ Deferred tiers and known gaps:
 - Model-turn cases (any `workflow.run`) are out of scope for the host tier: a model turn
   makes a case non-deterministic, so such a case must set `purity: false` and pin its
   records instead of a digest.
+- Three mutations stay unpinned until the operator decides: `preexisting-draft-equal` and
+  `preexisting-envelope-equal` (D4 staging-compare idempotence) and `p05-no-ceiling`
+  (envelope refusal token). Properties classify them instead of asserting a reason.
 
 ## Verification ladder (before any install)
 
@@ -199,6 +207,7 @@ Deferred tiers and known gaps:
    `~/.pi/agent/git/github.com/chunkhound/pi-schematic`) — the compile tier.
 2. Simulation suite: streams plus the fault matrix (contract tier).
 3. Host replay of the same cases, purity included — `node workflows/test/run.mjs host`.
+   Generated-input properties over the same contracts — `node workflows/test/run.mjs prop`.
 4. Baseline replay on a scratch copy (acceptance tier and `baseline-replay` in the host tier).
 5. One bounded live run by path against a **copy**
    (`--workflow-time 300000`), evidence kept — `host-run.mjs --live`.

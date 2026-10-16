@@ -5,6 +5,7 @@
 //   node workflows/test/run.mjs acceptance  # frozen-baseline byte-equality replay
 //   node workflows/test/run.mjs compile     # draft toolchain conformance
 //   node workflows/test/run.mjs host        # the same cases through the real pi CLI
+//   node workflows/test/run.mjs prop        # generated-input properties (QuickCheck-style)
 //   node workflows/test/run.mjs all
 //
 // Tiers are selected by filename suffix: *.acceptance.test.mjs, *.compile.test.mjs and
@@ -18,12 +19,13 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ALL = readdirSync(HERE).filter((name) => name.endsWith(".test.mjs")).sort();
-const OPT_IN = [".acceptance.test.mjs", ".compile.test.mjs", ".host.test.mjs"];
+const OPT_IN = [".acceptance.test.mjs", ".compile.test.mjs", ".host.test.mjs", ".prop.test.mjs"];
 const TIERS = {
   fast: ALL.filter((name) => !OPT_IN.some((suffix) => name.endsWith(suffix))),
   acceptance: ALL.filter((name) => name.endsWith(".acceptance.test.mjs")),
   compile: ALL.filter((name) => name.endsWith(".compile.test.mjs")),
   host: ALL.filter((name) => name.endsWith(".host.test.mjs")),
+  prop: ALL.filter((name) => name.endsWith(".prop.test.mjs")),
   all: ALL,
 };
 

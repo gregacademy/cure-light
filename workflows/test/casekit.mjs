@@ -125,6 +125,7 @@ export function runCase(spec, { driver = "stub", caseDir = null, keep = false, r
       reason: null,
       exit: null,
       resultDigest: null,
+      snapshot: { before: null, after: null },
       transcriptTypes: [],
       purity: null,
       usage: { turns: 0, checkpoints: 0, shells: 0, costUsd: 0, hostMs: null },
@@ -243,6 +244,8 @@ export function runCase(spec, { driver = "stub", caseDir = null, keep = false, r
     exit: last.result.exit ?? null,
     summary: last.result.summary ?? null,
     resultDigest: last.digest,
+    /** Content snapshot of the store before and after the run: {"no writes"} assertions. */
+    snapshot: { before, after: last.tree },
     transcriptTypes: last.result.entries ?? [],
     purity: purityInfo,
     usage: {

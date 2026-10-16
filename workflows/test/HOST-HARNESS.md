@@ -8,6 +8,7 @@ canonical result on both.
 ```
 node workflows/test/run.mjs             # fast: fixtures + contracts (stub host)
 node workflows/test/run.mjs host        # opt-in: the same cases through the real pi CLI
+node workflows/test/run.mjs prop        # opt-in: generated-input properties (see PROP-ENGINE.md)
 node workflows/test/run.mjs compile     # opt-in: draft toolchain conformance
 node workflows/test/run.mjs acceptance  # opt-in: frozen-baseline byte-equality
 node workflows/test/run.mjs all
@@ -172,6 +173,9 @@ Both are additive; nothing in this harness depends on them.
 | `smoke.host.test.mjs` | host | harness self-test: real host run, purity, stub≡host digest |
 | `p0-close.host.test.mjs` | host | the p0-close cases through the real CLI (red until the draft lands) |
 | `p0-close.contract.test.mjs` | fast | the same cases through the stub host |
+| `prop/*` + `prop-run.mjs` | — | property engine: generated stores, shrinking, coverage (see `PROP-ENGINE.md`) |
+| `prop-engine.prop.test.mjs` | prop | engine self-test: finds a planted violation, shrinks it, replays it on both hosts |
+| `p0-close.prop.test.mjs` | prop | p0-close invariants over the generated input space (skips until the draft lands) |
 
 Constraints honoured: `kernel/tools/*` is never modified; cases run on copies under
 `os.tmpdir()`; the real store and the frozen baseline are only ever read (the baseline case

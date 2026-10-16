@@ -1,5 +1,8 @@
 # workflows/ — pi `/workflow` scripts for the review engine
 
+Entry point for builders: [`AUTHORING.md`](AUTHORING.md) — the loop, the two test
+surfaces, the purity rules. The p0-close build spec is [`p0/SPEC.md`](p0/SPEC.md).
+
 Deterministic mechanical workflows for cure-light coordinator phases, written in the
 pi-schematic `/workflow` author contract. Host tooling: `kernel/` and the pinned tools
 (`verify.mjs`, `chunker.mjs`) stay untouched, and `verify join` remains the sole mechanical

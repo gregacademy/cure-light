@@ -10,7 +10,7 @@
 //   apply     (runRoot, params) -> void; throws MutationNotApplicable when the pre-close
 //             store has no suitable target (the runner counts that as a discard)
 //
-// Domain rules mirrored from workflows/p0/README.md (do not widen without a spec change):
+// Domain rules mirrored from workflows/p0/SPEC.md (do not widen without a spec change):
 //   pre-write validation mismatch -> needs-input
 //   merge validation error        -> validation-failed
 //   existing differing target     -> frozen-artifact

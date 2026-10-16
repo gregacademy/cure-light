@@ -13,23 +13,35 @@ one, `p0-close`, is specified in `workflows/p0/SPEC.md`.
 |---|---|---|
 | 1 | `workflows/AUTHORING.md` (this file) | the loop, the two test surfaces, the rules |
 | 2 | `workflows/p0/SPEC.md` | what the draft must do: steps 0–6, the six exit reasons, the 15-output byte-equality table |
-| 3 | `workflows/test/HOST-HARNESS.md` §2–§3 | the case model and the purity contract |
-| 4 | `workflows/test/PROP-ENGINE.md` | the property engine, when hand-picked inputs are not enough |
+| 3 | `workflows/testkit/HOST-HARNESS.md` §2–§3 | the case model and the purity contract |
+| 4 | `workflows/p0/prop/PROP-ENGINE.md` | the property engine, when hand-picked inputs are not enough |
 
 ## Where things live
 
-| Path | Role |
-|---|---|
-| `workflows/p0/p0-close.js` | the draft — **does not exist yet** (red-first; every p0-close test fails with `E_WORKFLOW_MISSING` until it lands) |
-| `workflows/test/cases.mjs` | sealed case table: one input recipe + one oracle per case |
-| `workflows/test/streams.mjs` | synthetic pre-close streams and their fault fixtures |
-| `workflows/test/prop/catalog.mjs` | property table: p0-close invariants + engine self-tests |
-| `workflows/test/prop/mutations.mjs` | the mutation registry = the generated input space |
-| `workflows/test/fixtures/{smoke-echo,probe-mark}.js` | deterministic fixtures: plumbing proof, planted-violation engine self-test |
-| `workflows/test/run.mjs` | tier runner |
-| `workflows/test/host-run.mjs` | case CLI for agents and operators |
-| `workflows/test/prop-run.mjs` | property CLI |
-| `kernel/tools/*` | read-only: `verify.mjs` stays byte-identical, `verify join` is the sole acceptance boundary |
+```
+workflows/
+  AUTHORING.md          this file — the builder entry point
+  run.mjs               tier runner (fast | host | prop | acceptance | compile | all)
+  p0/                   the p0-close workflow
+    SPEC.md             build spec
+    fixtures/           synthetic + baseline streams, fault variants, probe fixture
+    cases.mjs           sealed case table
+    testkit.mjs         draft path, tool pins, canonical args
+    prop/               property engine: catalog, mutations, spec, render, runner
+    prop-run.mjs        property CLI
+    test/               the p0-close suite (contract, host, prop, acceptance, compile)
+  testkit/              shared harness
+    harness.mjs         stub host (in-process)
+    casekit.mjs         case runner + purity digest
+    hostdriver.mjs      real pi CLI driver
+    host-run.mjs        case CLI for agents and operators
+    cases.mjs           smoke cases (the harness's own plumbing proof)
+    fixtures/           smoke-echo.js
+    HOST-HARNESS.md     harness design and verified host facts
+```
+
+`kernel/tools/*` is read-only: `verify.mjs` stays byte-identical and `verify join` remains
+the sole mechanical acceptance boundary.
 
 ## The builder loop
 
@@ -37,11 +49,11 @@ The spec and the tests are written; the draft is not. That is deliberate — the
 executable specification. Build the draft until each tier goes green, in cost order:
 
 ```bash
-node workflows/test/run.mjs fast        # stub host, sub-second — iterate here
-node workflows/test/run.mjs prop        # generated-input properties (stub by default)
-node workflows/test/run.mjs host        # real pi CLI + purity rerun — the host contract
-node workflows/test/run.mjs acceptance  # frozen-baseline byte equality (15 outputs)
-node workflows/test/run.mjs compile     # draft toolchain conformance
+node workflows/run.mjs fast        # stub host, sub-second — iterate here
+node workflows/run.mjs prop        # generated-input properties (stub by default)
+node workflows/run.mjs host        # real pi CLI + purity rerun — the host contract
+node workflows/run.mjs acceptance  # frozen-baseline byte equality (15 outputs)
+node workflows/run.mjs compile     # draft toolchain conformance
 ```
 
 Current red-first state (2026-10-16, draft absent):
@@ -57,8 +69,9 @@ Current red-first state (2026-10-16, draft absent):
 Do not make a tier look green by weakening a case or by implementing the draft inside the
 test session. Fix the draft, or fix the case/property and state the reason in the change.
 
-Tiers are filename-suffixed: `*.acceptance.test.mjs`, `*.compile.test.mjs`,
-`*.host.test.mjs`, `*.prop.test.mjs` are opt-in; every other `*.test.mjs` is fast.
+Tiers are selected by the tier token at the end of the test filename: `contract.test.mjs`
+is fast; `host.test.mjs`, `prop.test.mjs`, `acceptance.test.mjs` and `compile.test.mjs` are
+opt-in (`smoke.host.test.mjs` and `prop-engine.prop.test.mjs` match too).
 
 ## Two surfaces, one runner
 
@@ -68,11 +81,11 @@ Tiers are filename-suffixed: `*.acceptance.test.mjs`, `*.compile.test.mjs`,
 | Oracle | `expect.reason` + `check(ctx)` assertions | invariant in `property(ctx)` — no expected value |
 | Finds | regressions on known incidents | bugs across a whole input class |
 | Cost | stub ms, real host seconds | stub trial ~10–30 ms, host trial ~2–4 s |
-| Table | `workflows/test/cases.mjs` | `workflows/test/prop/catalog.mjs` |
+| Table | `workflows/p0/cases.mjs` | `workflows/p0/prop/catalog.mjs` |
 
 Rule: **a case pins an incident; a property guards a class.** A failing property is shrunk
 and replayed, then promoted into a sealed case. Both surfaces end in the same runner
-(`casekit.runCase`): a property trial is one generated store driven exactly like a case.
+(`testkit/casekit.mjs`): a property trial is one generated store driven exactly like a case.
 
 ## Author a sealed case
 
@@ -109,12 +122,14 @@ store, so "refused ⇒ wrote nothing" is one line:
 }
 ```
 
-`DRAFT` and `workflowArgs` come from `workflows/test/p0-close-testkit.mjs`;
-`synthetic` and `HOST_FLAGS` are local helpers in `cases.mjs`.
+`DRAFT` and `workflowArgs` come from `workflows/p0/testkit.mjs`; `synthetic` and `HOST_FLAGS`
+are local helpers in `workflows/p0/cases.mjs`.
 
-Wiring: `p0-close.contract.test.mjs` iterates `P0_CLOSE_CASES` on the stub host;
-`p0-close.host.test.mjs` iterates the same objects through the real pi CLI. Add the case to
-the table — no test-file change. A new workflow gets its own group in `CASE_GROUPS`.
+Wiring: `workflows/p0/test/contract.test.mjs` iterates `P0_CLOSE_CASES` on the stub host;
+`workflows/p0/test/host.test.mjs` iterates the same objects through the real pi CLI. Add the
+case to the table — no test-file change. A new workflow gets its own folder (with the same
+`cases.mjs` / `testkit.mjs` / `test/` split) and a group entry in
+`workflows/testkit/host-run.mjs`; add its test dir to `workflows/run.mjs`.
 
 Defaults and evidence:
 
@@ -170,17 +185,17 @@ Failure loop — find, shrink, replay, promote:
 FAIL  <name>  driver=stub  seed=7  trials=1
       counterexample (trial 0, trialSeed …): boxes=1 mutations=[clean] probe={"n":4}
       shrunk x1: boxes=1 mutations=[clean] probe={"n":2}
-      replay: node workflows/test/prop-run.mjs <name> --spec '<json>' --driver stub
+      replay: node workflows/p0/prop-run.mjs <name> --spec '<json>' --driver stub
 ```
 
 The shrunk spec is the bug report. Replay it on both drivers, then promote the mutation
-program into `cases.mjs` as a sealed case: the case keeps the incident dead, the property
-keeps guarding the class. Property CLI exit codes: 0 held · 1 counterexample · 2
-usage/engine error · 3 workflow absent.
+program into `workflows/p0/cases.mjs` as a sealed case: the case keeps the incident dead,
+the property keeps guarding the class. Property CLI exit codes: 0 held · 1 counterexample ·
+2 usage/engine error · 3 workflow absent.
 
 ## Extend the input space
 
-A mutation is data in `workflows/test/prop/mutations.mjs`: `summary`, `stage`
+A mutation is data in `workflows/p0/prop/mutations.mjs`: `summary`, `stage`
 (`prewrite|pin|merge|freeze|envelope`), `expected` (sealed exit reason, or `null` + `note`
 when the spec is undecided), `params` (generation/shrink metadata), `apply(runRoot, params)`.
 Throw `MutationNotApplicable` when the target is absent — the runner counts that as a
@@ -221,14 +236,14 @@ for them.
 
 | Command | Use |
 |---|---|
-| `node workflows/test/run.mjs fast` | stub contracts — the always-run loop |
-| `node workflows/test/run.mjs host` | real pi CLI; spawns one pi per case |
-| `node workflows/test/host-run.mjs --list` | list cases |
-| `node workflows/test/host-run.mjs <case\|group> --driver host --json` | full report: checks, digest, evidence paths |
-| `node workflows/test/host-run.mjs --live --workflow <path> --store <copy> --args "<verbatim>"` | bounded ad-hoc run, keeps its evidence |
-| `node workflows/test/prop-run.mjs <prop\|group> --cases N --seed S [--driver host]` | generated trials; the same seed replays the same sequence |
-| `node workflows/test/prop-run.mjs <prop> --spec '<json>' --driver host` | replay one store |
-| `node workflows/test/run.mjs all` | every tier |
+| `node workflows/run.mjs fast` | stub contracts — the always-run loop |
+| `node workflows/run.mjs host` | real pi CLI; spawns one pi per case |
+| `node workflows/testkit/host-run.mjs --list` | list cases |
+| `node workflows/testkit/host-run.mjs <case\|group> --driver host --json` | full report: checks, digest, evidence paths |
+| `node workflows/testkit/host-run.mjs --live --workflow <path> --store <copy> --args "<verbatim>"` | bounded ad-hoc run, keeps its evidence |
+| `node workflows/p0/prop-run.mjs <prop\|group> --cases N --seed S [--driver host]` | generated trials; the same seed replays the same sequence |
+| `node workflows/p0/prop-run.mjs <prop> --spec '<json>' --driver host` | replay one store |
+| `node workflows/run.mjs all` | every tier |
 
 Exit codes: `host-run.mjs` 0 pass · 1 assertion failure · 2 usage/harness error.
 `prop-run.mjs` 0 held · 1 counterexample · 2 usage/engine error · 3 workflow absent.
@@ -244,12 +259,12 @@ Exit codes: `host-run.mjs` 0 pass · 1 assertion failure · 2 usage/harness erro
 
 ## Reference index
 
-- `workflows/test/HOST-HARNESS.md` — §1 host observation surface, §2 case model, §3 purity
-  contract, §4 agent CLI, §5 MCP finding.
-- `workflows/test/PROP-ENGINE.md` — §2 determinism, §3 input model + mutation table, §4
+- `workflows/testkit/HOST-HARNESS.md` — §1 host observation surface, §2 case model, §3 purity
+  contract, §4 agent CLI, §5 MCP finding, §6 tiers and files.
+- `workflows/p0/prop/PROP-ENGINE.md` — §2 determinism, §3 input model + mutation table, §4
   generators, §5 properties + `ctx`, §6 coverage/discards/budget, §7 promotion to a case,
   §8 non-goals.
-- `workflows/p0/SPEC.md` — p0-close invocation, steps, exit reasons, artifact table,
-  tiers, ladder, non-goals.
+- `workflows/p0/SPEC.md` — p0-close invocation, steps, exit reasons, artifact table, tiers,
+  ladder, non-goals.
 - `kernel/tools/verify-testkit.mjs` — store read helpers and `runVerifier` used by cases and
   fixtures.

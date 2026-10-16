@@ -3,8 +3,8 @@
 Entry point: [`../AUTHORING.md`](../AUTHORING.md) — the builder loop, the two test surfaces
 and the purity rules. This file specifies **what** `p0-close` must do; AUTHORING.md owns
 **how** a draft is built, driven and verified. Host verification facts:
-[`../test/HOST-HARNESS.md`](../test/HOST-HARNESS.md); generated-input semantics:
-[`../test/PROP-ENGINE.md`](../test/PROP-ENGINE.md).
+[`../testkit/HOST-HARNESS.md`](../testkit/HOST-HARNESS.md); generated-input semantics:
+[`prop/PROP-ENGINE.md`](prop/PROP-ENGINE.md).
 
 Status: **red-first, draft absent** (2026-10-15). The draft is `workflows/p0/p0-close.js`,
 runs **by path** during development, and every p0-close test fails with
@@ -167,35 +167,35 @@ Classes from the mechanism assessment:
 
 ## Tests and tiers
 
-Tier runner: `node workflows/test/run.mjs fast|acceptance|compile|host|prop|all` (no
+Tier runner: `node workflows/run.mjs fast|acceptance|compile|host|prop|all` (no
 package.json in this repo, so `run.mjs` owns the `node --test` globs). The build loop and
 the evidence-reading recipes are in AUTHORING.md §The builder loop and §Run and read.
 
 | Tier | File | Role | State (2026-10-16) |
 |---|---|---|---|
-| fast | `workflows/test/streams.test.mjs` | fixture sanity | 3 pass |
-| fast | `workflows/test/harness.test.mjs` | stub-host self-test | 3 pass |
-| fast | `workflows/test/p0-close.contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 fail, all `E_WORKFLOW_MISSING` |
-| host | `workflows/test/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real `pi` CLI, purity rerun, and stub≡host digest equality | 4 pass |
-| host | `workflows/test/p0-close.host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs from the same initial state and compares by result digest | 12 red until the draft lands |
-| prop | `workflows/test/prop-engine.prop.test.mjs` | engine self-test: render determinism, seed replay, shrinks a planted violation to the minimal counterexample, replays it on both hosts, honours `cover`, counts discards | 10 pass |
-| prop | `workflows/test/p0-close.prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | 7 skipped until the draft lands |
-| acceptance | `workflows/test/p0-close.acceptance.test.mjs` | frozen-baseline byte-equality replay on a scratch copy (in-process) | red; skips when the store is absent |
-| compile | `workflows/test/p0-close.compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | 2 skipped until the draft lands |
+| fast | `workflows/p0/test/streams.test.mjs` | fixture sanity | 3 pass |
+| fast | `workflows/testkit/harness.test.mjs` | stub-host self-test | 3 pass |
+| fast | `workflows/p0/test/contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 fail, all `E_WORKFLOW_MISSING` |
+| host | `workflows/testkit/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real `pi` CLI, purity rerun, and stub≡host digest equality | 4 pass |
+| host | `workflows/p0/test/host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs from the same initial state and compares by result digest | 12 red until the draft lands |
+| prop | `workflows/p0/test/prop-engine.prop.test.mjs` | engine self-test: render determinism, seed replay, shrinks a planted violation to the minimal counterexample, replays it on both hosts, honours `cover`, counts discards | 10 pass |
+| prop | `workflows/p0/test/prop.test.mjs` | invariants over the generated input space (mutation programs, 1/2 boxes): refusal writes nothing, accept is complete and `verify join`-clean, digest stable, packing-invariant, resume never rewrites different bytes | 7 skipped until the draft lands |
+| acceptance | `workflows/p0/test/acceptance.test.mjs` | frozen-baseline byte-equality replay on a scratch copy (in-process) | red; skips when the store is absent |
+| compile | `workflows/p0/test/compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | 2 skipped until the draft lands |
 
 Support files:
 
 | File | Role |
 |---|---|
-| `workflows/test/streams.mjs` | synthetic + baseline streams, fault injection, CLI |
-| `workflows/test/harness.mjs` | stub host: real shell, in-memory notebook, `E_WORKFLOW_MISSING` for a missing draft |
-| `workflows/test/p0-close-testkit.mjs` | draft path, pinned tool hashes, canonical invocation |
-| `workflows/test/cases.mjs` | the sealed case table |
-| `workflows/test/casekit.mjs` | runner, purity digest, report |
-| `workflows/test/hostdriver.mjs` | real pi CLI driver |
-| `workflows/test/host-run.mjs` | case CLI for agents: groups, `--json`, `--live` |
-| `workflows/test/prop/*` | property engine: store specs, mutation registry, generator, shrinker, runner |
-| `workflows/test/prop-run.mjs` | property CLI: `--list`, `--cases`, `--seed`, `--spec`, `--json` |
+| `workflows/p0/fixtures/streams.mjs` | synthetic + baseline streams, fault injection, CLI |
+| `workflows/testkit/harness.mjs` | stub host: real shell, in-memory notebook, `E_WORKFLOW_MISSING` for a missing draft |
+| `workflows/p0/testkit.mjs` | draft path, pinned tool hashes, canonical invocation |
+| `workflows/p0/cases.mjs` | the sealed case table |
+| `workflows/testkit/casekit.mjs` | runner, purity digest, report |
+| `workflows/testkit/hostdriver.mjs` | real pi CLI driver |
+| `workflows/testkit/host-run.mjs` | case CLI for agents: groups, `--json`, `--live` |
+| `workflows/p0/prop/*` | property engine: store specs, mutation registry, generator, shrinker, runner |
+| `workflows/p0/prop-run.mjs` | property CLI: `--list`, `--cases`, `--seed`, `--spec`, `--json` |
 
 The fast tier keeps the sealed contracts exactly as authored; the host tier replays the
 same case objects, so a case is written once and proven twice — under the stub host and
@@ -224,11 +224,11 @@ Deferred tiers and known gaps:
    (`PI_SCHEMATIC_CHECKOUT`, default
    `~/.pi/agent/git/github.com/chunkhound/pi-schematic`) — the compile tier.
 2. Simulation suite: streams plus the fault matrix (contract tier).
-3. Host replay of the same cases, purity included — `node workflows/test/run.mjs host`.
-   Generated-input properties over the same contracts — `node workflows/test/run.mjs prop`.
+3. Host replay of the same cases, purity included — `node workflows/run.mjs host`.
+   Generated-input properties over the same contracts — `node workflows/run.mjs prop`.
 4. Baseline replay on a scratch copy (acceptance tier and `baseline-replay` in the host tier).
 5. One bounded live run by path against a **copy**
-   (`--workflow-time 300000`), evidence kept — `host-run.mjs --live`.
+   (`--workflow-time 300000`), evidence kept — `workflows/testkit/host-run.mjs --live`.
 6. Record the revision sha in the proposal and the runbook after the build.
 
 ## Non-goals

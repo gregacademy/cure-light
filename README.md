@@ -44,8 +44,9 @@ cure-light/
 │   └── references/           ← requirements-check, notebook-plan-contract
 ├── workflows/                ← in-repo mechanical workflows
 │   ├── AUTHORING.md          ← entry point: authoring the drafts, specs and tests
-│   ├── p0/SPEC.md           ← p0-close build spec (red-first; draft absent)
-│   └── test/                 ← host harness + property engine
+│   ├── run.mjs               ← tier runner (fast | host | prop | acceptance | compile)
+│   ├── p0/                   ← the p0-close workflow (spec, fixtures, cases, tests)
+│   └── testkit/              ← shared host harness (stub + real pi CLI) and CLIs
 ├── templates/KICKOFF.md      ← fill-in fields for a new episode
 ├── assets/                   ← finding-schema.json, child-pass-prompt-template
 ├── docs/

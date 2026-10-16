@@ -148,26 +148,35 @@ Bounds: merge ≤300 s; envelope ≤120 s.
 Tier runner (no package.json in this repo, so `run.mjs` owns the `node --test` globs):
 
 ```bash
-node workflows/test/run.mjs             # fast (default) — the build loop
+node workflows/test/run.mjs             # fast (default) — the build loop, stub host
+node workflows/test/run.mjs host        # the same cases through the real pi CLI (opt-in)
 node workflows/test/run.mjs acceptance  # frozen-baseline byte-equality replay
 node workflows/test/run.mjs compile     # draft toolchain conformance
 node workflows/test/run.mjs all
 ```
 
-| Tier | File | Role | State (2026-10-15) |
+| Tier | File | Role | State (2026-10-16) |
 |---|---|---|---|
 | fast | `workflows/test/streams.test.mjs` | fixture sanity | 3 pass |
 | fast | `workflows/test/harness.test.mjs` | stub-host self-test | 3 pass |
-| fast | `workflows/test/p0-close.contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags | 11 fail, all `E_WORKFLOW_MISSING` |
-| acceptance | `workflows/test/p0-close.acceptance.test.mjs` | proposal §5 byte-equality replay on a scratch copy | red; skips when the store is absent |
+| fast | `workflows/test/p0-close.contract.test.mjs` | red-first executable specification: valid merge (incl. `verify join` on the merged store), six refusal faults, allow-overwrite, ceiling and verifier-pin refusals, missing flags — the shared case table in `cases.mjs` driven by the stub host | 11 fail, all `E_WORKFLOW_MISSING` |
+| host | `workflows/test/p0-close.host.test.mjs` | the identical cases + the baseline replay driven through the real `pi` CLI (`--mode json`), each pure case re-run from the same initial state and compared by result digest | red until the draft lands |
+| host | `workflows/test/smoke.host.test.mjs` | harness self-test: a pure-shell fixture through the real host, purity rerun, and stub≡host digest equality | 4 pass |
+| acceptance | `workflows/test/p0-close.acceptance.test.mjs` | proposal §5 byte-equality replay on a scratch copy (in-process) | red; skips when the store is absent |
 | compile | `workflows/test/p0-close.compile.test.mjs` | `node --check` in a CJS scope + canonical compile (`{code, hasCheckpoint:true}`) | skipped until the draft lands |
 
 Support: `workflows/test/streams.mjs` (synthetic + baseline streams, fault injection, CLI),
 `workflows/test/harness.mjs` (stub host: real shell, in-memory notebook,
 `E_WORKFLOW_MISSING` for a missing draft), `workflows/test/p0-close-testkit.mjs` (draft
-path, pinned tool hashes, canonical invocation). The pre-segmentation assertions moved
-across the tiers unchanged: the same sealed contracts, split by cost and external
-dependence, not rewritten.
+path, pinned tool hashes, canonical invocation), `workflows/test/cases.mjs` (the sealed
+case table), `workflows/test/casekit.mjs` (runner, purity digest, report),
+`workflows/test/hostdriver.mjs` (real pi CLI driver), `workflows/test/host-run.mjs` (CLI
+for an agent: groups, `--json`, `--live`). Design and verified host facts:
+`workflows/test/HOST-HARNESS.md`.
+
+The fast tier keeps the sealed contracts exactly as authored; the host tier replays the
+same case objects, so a case is written once and proven twice — under the stub host and
+under the real one. Real host runs never happen by default (seconds each).
 
 Deferred tiers and known gaps:
 
@@ -176,9 +185,12 @@ Deferred tiers and known gaps:
   missing `input_ceiling_bytes`), and a 1-box stream.
 - §5 counts 15 outputs, but the baseline stream pins 14: `run-manifest.json.sha256` is
   neither pinned nor asserted yet.
-- Determinism / rerun idempotence (run twice → identical bytes; re-run without
-  `--allow-overwrite` → `frozen-artifact`) is not a tier yet.
+- Rerun idempotence without a reset (re-run in the same store without `--allow-overwrite`
+  → `frozen-artifact`) is not a case yet; the purity rerun resets the store by design.
 - Card shape (≤20 lines) and checkpoint metadata shape are not asserted yet.
+- Model-turn cases (any `workflow.run`) are out of scope for the host tier: a model turn
+  makes a case non-deterministic, so such a case must set `purity: false` and pin its
+  records instead of a digest.
 
 ## Verification ladder (before any install)
 
@@ -186,10 +198,11 @@ Deferred tiers and known gaps:
    (`PI_SCHEMATIC_CHECKOUT`, default
    `~/.pi/agent/git/github.com/chunkhound/pi-schematic`) — the compile tier.
 2. Simulation suite: streams plus the fault matrix (contract tier).
-3. Baseline replay on a scratch copy (acceptance tier).
-4. One bounded live run by path against a **copy**
-   (`--workflow-time 300000 --workflow-cost 0.5`), evidence kept.
-5. Record the revision sha in the proposal and the runbook after the build.
+3. Host replay of the same cases, purity included — `node workflows/test/run.mjs host`.
+4. Baseline replay on a scratch copy (acceptance tier and `baseline-replay` in the host tier).
+5. One bounded live run by path against a **copy**
+   (`--workflow-time 300000`), evidence kept — `host-run.mjs --live`.
+6. Record the revision sha in the proposal and the runbook after the build.
 
 ## Non-goals
 

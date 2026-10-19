@@ -150,7 +150,7 @@ plus the typed binding fields `run, review_state, subject_oid, assignment_digest
 
 The coordinator owns notebook writes and adjudication. It must consume ALL required claim/unit/closure/trace records in bounded artifact slices before asserting completion, never trusting counts or cherry-picking findings.
 
-**Mechanical-verdict exemption.** This cap does not apply to the mechanical verification child: it returns the stdout JSON verdict verbatim plus exit code and stderr under the existing contract, untruncated (a missing or truncated verdict already fails the mechanical gate).
+**Mechanical-verdict exemption.** This cap does not apply to the mechanical verification child: it returns the exact stdout/stderr bytes and their sha256 plus the numeric exit code under the existing contract, untruncated (a missing or truncated verdict already fails the mechanical gate).
 
 ## Phase-0 children — separate bindings
 
@@ -176,6 +176,7 @@ conflicts[{id,kind,materiality,quotes[{source_ref,quote,offset_bytes}],
 notes[{note}] (a quote-bearing note carries the defined optional
 source_ref+quote pair),
 missing_source_candidates[{resource,affected_claim_ids,reference_quote,why_it_matters}].
+If you include `source_consistency`, make it an object: optional `status` (nonempty string), optional `records` (array of `{id}` records whose nonempty IDs name recorded `conflicts[].id`), and optional `notes` (one nonempty string, never an array); omit it rather than record an empty value. Every `missing_source_candidates[].affected_claim_ids` entry must be a distinct ID from `claims[].id`, never a nonclaim or another record ID. See `artifact-contracts.md §2` for the canonical field/repair contract.
 Conflicts vocabulary is exact: kind is `within-source` or `cross-source`;
 materiality is `material` or `non-material` (structural enums only — put the
 richer subtype wording in witness/reasoning); precedence is a required nonempty
@@ -253,15 +254,20 @@ semantic checkpoint.
 The coordinator MUST spawn a `fast` child explicitly to execute the pinned
 `{verifier_command}` against artifact class `{artifact_class}`. The child
 verifies the frame-recorded `{verifier_path}` / `{verifier_sha256}`, reads run
-artifacts only, runs the tool, and returns the stdout JSON verdict verbatim
-plus the exit code and stderr summary. Read-only: do not interpret, repair or
+artifacts only, runs the tool, and returns the exact stdout JSON bytes
+(including trailing newline) and their sha256, the exact stderr bytes and their
+sha256, and the numeric exit code. Read-only: do not interpret, repair or
 normalize, do not write artifacts or the notebook, do not run subject code, and
 do not substitute checks. Missing/degenerate `fast` pauses; no coordinator
 fallback. A nonzero exit, a missing or unparseable verdict, a truncated return,
 a tool/hash mismatch, or an ok/exit inconsistency fails this mechanical gate.
 The coordinator consumes the verdict; it never overrides, reimplements or
-reruns checks in its own context. It may obtain repaired artifacts as new
-retained attempts and re-delegate, or pause. Materiality, source
+reruns checks in its own context. The coordinator persists the returned stdout
+bytes as the verdict artifact and pins their sha256; it never re-serializes,
+filters, pretty-prints or compresses the check list, and never substitutes a
+summary for the bytes; a missing, truncated or hash-mismatched capture fails the
+mechanical gate; record stderr and the exit code separately. It may obtain
+repaired artifacts as new retained attempts and re-delegate, or pause. Materiality, source
 authority/precedence, `repair_required`, `review_basis`, attribution and
 dispositions remain coordinator/V1 semantic work. This child is not under the
 vector template's subject-read invariant: the verifier must NOT read the

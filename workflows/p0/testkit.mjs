@@ -39,24 +39,37 @@ export function recordedCeiling(runRoot) {
   return readJson(runRoot, `join/${names.at(0)}`).input_ceiling_bytes;
 }
 
+/** Single-quote one shell argument, escaping embedded single quotes (`'` -> `'\\''`). */
+export function shellQuote(value) {
+  return "'" + String(value).split("'").join("'\\''") + "'";
+}
+
 /** The canonical invocation against a materialized run root (proposal §3). */
 export function workflowArgs(runRoot, overrides = {}) {
   const manifest = readJson(runRoot, "units/units2/manifest.json");
   const identity = manifest.identity ?? {};
   const parts = [
-    `--store ${runRoot}`,
-    `--verifier ${VERIFIER}`,
-    `--verifier-sha256 ${overrides.verifierSha ?? VERIFIER_SHA}`,
-    `--chunker-sha256 ${CHUNKER_SHA}`,
-    `--input-ceiling-bytes ${overrides.ceiling ?? recordedCeiling(runRoot)}`,
-    `--operator-ref ${overrides.operatorRef ?? "fixture:p0-close"}`,
-    `--run-id ${overrides.runId ?? "fixture/p0-close"}`,
-    `--review-state ${overrides.reviewState ?? "s1"}`,
-    `--base-oid ${overrides.baseOid ?? identity.base_oid ?? "0".repeat(40)}`,
-    `--subject-oid ${overrides.subjectOid ?? identity.subject_oid ?? "1".repeat(40)}`,
+    `--store ${shellQuote(overrides.store ?? runRoot)}`,
+    `--verifier ${shellQuote(VERIFIER)}`,
+    `--verifier-sha256 ${shellQuote(overrides.verifierSha ?? VERIFIER_SHA)}`,
+    `--chunker-sha256 ${shellQuote(CHUNKER_SHA)}`,
+    `--input-ceiling-bytes ${shellQuote(overrides.ceiling ?? recordedCeiling(runRoot))}`,
+    `--operator-ref ${shellQuote(overrides.operatorRef ?? "fixture:p0-close")}`,
+    `--run-id ${shellQuote(overrides.runId ?? "fixture/p0-close")}`,
+    `--review-state ${shellQuote(overrides.reviewState ?? "s1")}`,
+    `--base-oid ${shellQuote(overrides.baseOid ?? identity.base_oid ?? "0".repeat(40))}`,
+    `--subject-oid ${shellQuote(overrides.subjectOid ?? identity.subject_oid ?? "1".repeat(40))}`,
   ];
   if (overrides.allowOverwrite) parts.push("--allow-overwrite");
-  return parts.join(" ");
+  const canonical = parts.join(" ");
+  // Escape hatch for a case that needs a raw argument string (duplicate flags, `--flag=`
+  // forms, malformed tokens). A function receives the canonical string built above.
+  if (overrides.argsOverride !== undefined) {
+    return typeof overrides.argsOverride === "function"
+      ? String(overrides.argsOverride(canonical))
+      : String(overrides.argsOverride);
+  }
+  return canonical;
 }
 
 /** Run the draft by path under the stub host in a fresh cwd. */

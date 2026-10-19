@@ -196,6 +196,15 @@ describe("artifact discovery and loader", () => {
     expectFailurePrefix(r, "artifact.discovery", "artifact missing:");
   });
 
+  it("claims and units fail closed without the current pinned run-manifest.json (E2)", () => {
+    for (const command of ["claims", "units"]) {
+      const runRoot = materializeRun(`e2-no-envelope-${command}`);
+      rmSync(path.join(runRoot, RUN_MANIFEST));
+      const r = runVerifier([command, "--run", runRoot], { runRoot });
+      expectFailure(r, "artifact.read", "cannot read artifact: run-manifest.json");
+    }
+  });
+
   it("two claims drafts refuse as ambiguous (exit 2)", () => {
     const runRoot = materializeRun("claims-ambiguous");
     copyFileSync(path.join(runRoot, CLAIMS_DRAFT), path.join(runRoot, "claims/claims-draft.v2.json"));
@@ -486,9 +495,9 @@ describe("claims candidates (C8)", () => {
 
   it("candidate affected_claim_ids that do not resolve fails (exit 1, item 4)", () => {
     const runRoot = materializeRun("c8-candidate-ids");
-    mutateClaims(runRoot, (claims) => { claims.missing_source_candidates[0].affected_claim_ids = ["C99"]; });
+    mutateClaims(runRoot, (claims) => { claims.missing_source_candidates[0].affected_claim_ids = ["N02"]; });
     const r = runVerifier(["claims", "--run", runRoot], { runRoot });
-    expectFailure(r, "claims.candidates");
+    expectFailure(r, "claims.candidates", 'candidate affected claim id not found: 0 -> "N02"');
   });
 
   it("duplicate candidate affected_claim_ids fails (exit 1, F12)", () => {

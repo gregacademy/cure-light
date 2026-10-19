@@ -2,6 +2,16 @@
 
 ## Unreleased (working tree)
 
+### 2026-10-19 — s2 engine findings: quote-safe args, honest diagnostics, lossless verdict capture
+
+- **p0-close argument grammar.** `workflows/p0/p0-close.js` now uses the same quote-aware tokenizer as `p0-pack`; quoted values (spaces, apostrophes) parse byte-exactly, while unterminated quotes, explicit/quoted empty values and duplicate flags refuse `needs-input` before shell effects. `workflows/p0/testkit.mjs` quotes canonical values and adds `argsOverride`; new contract cases pin the behavior. The s2 quoted `operator_ref` no longer reaches the envelope.
+- **Claims/units diagnostics are post-prep.** `verify claims`/`verify units` require the current pinned `run-manifest.json`; the kernel no longer recommends an impossible pre-pack preflight. `kernel/references/intake-and-scope.md` and `artifact-contracts.md` now place the optional diagnostics after p0-close, before or after a failed `verify join`; a new fail-closed regression proves both commands reject a missing envelope.
+- **P0.2 prompt guardrails.** The child template now states the `source_consistency` shape (`status`, `records[{id}]`, one nonempty `notes` string) and that `missing_source_candidates[].affected_claim_ids` resolve only to `claims[].id`; `artifact-contracts.md` §2 carries the claim-only rule. Docs tests and the C8 regression pin both.
+- **Lossless verdict capture.** The mechanical-child template and stage-record contract now require the exact stdout bytes (trailing newline) and sha256, exact stderr bytes and sha256, and the numeric exit code; the coordinator persists the bytes and never re-serializes, filters, pretty-prints or compresses the check list. `verification.join` records `{ref, sha256, exit_code, stderr: {ref, sha256}}`.
+- **Envelope generation history.** `workflows/p0/SPEC.md` and the stage-record/report contracts now require bounded `prep.envelope_generations[]` entries for every `--allow-overwrite` generation, with the current marker; the gate report lists every attempt. No envelope schema field is added.
+- **No tool change.** `kernel/tools/verify.mjs` behavior, schemas, CLI and exit codes are unchanged. E5 (three-read receipt rule) is a call-site deviation already covered by the docs and recipe host tests; E7 (repeated witnesses) is sample data, not an engine finding. Both stay unmodified.
+- **Verification:** fast 66/66, prop 41/41, acceptance 3/3 (byte-equal baseline), host 62/62; kernel verifier docs+tests 200/200. Compile tier is blocked locally because the pi-schematic checkout lacks `workflow/types.js` (environment, not this change).
+
 ### 2026-10-19 — p0-pack host workflow call site (docs + receipt proof)
 
 - **Packing moved to a shipped host workflow.** The kernel now names `workflows/pack/p0-pack.js` as the only producer of `join/claims-list.json`, the per-box assignments and the per-box instructions, before any P0.4 child starts. It is hash-pinned engine-side tooling under `workflows/`, shell-only and model-free; there is no hand-packing fallback. Reason `ok` means artifacts promoted, never verified.

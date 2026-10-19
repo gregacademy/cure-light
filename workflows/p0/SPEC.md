@@ -262,4 +262,7 @@ Deferred tiers and known gaps:
   manifest order (`{unit_id, links: [], unresolved: null}`), empty when there are none.
 - Overwrite policy: resolved — staging-compare (promote absent-or-byte-equal, refuse only a
   differing target), `join/join-draft.v1.json` and `run-manifest.json` frozen;
-  repairs pass `--allow-overwrite` and are recorded as new envelope generations.
+  each `--allow-overwrite` repair writes a new envelope in its own evidence
+  directory, and the coordinator records a bounded `prep.envelope_generations[]`
+  entry `{receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}`
+  in the stage record; `prep.envelope_sha` remains the current pin.

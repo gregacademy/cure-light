@@ -164,7 +164,8 @@ at the call site — and match `workflows/pack/testkit.mjs` `packArgs` flag for 
 | `--child-store` | absent; defaults to `--store` |
 | `--allow-overwrite` | absent on the first pass; present only in a recorded repair attempt and only before any P0.4 child writes |
 
-Read back exactly three bounded records — never print or read `pi.stdout.jsonl` whole:
+Read back exactly three bounded records on every attempt, including a refusal — never
+print or read `pi.stdout.jsonl` whole:
 
 ```bash
 R=<receipt-dir>/pi.stdout.jsonl
@@ -190,7 +191,7 @@ decision.
 
 Packing contract (enforced by `p0-pack`): pack boxes by **input length only**: instructions + the full claim-ID/statement list + whole units in manifest order until the next unit no longer fits. Charge fixed input first; never trim the claims, split a unit across children, or add a unit-count cap. If fixed input or the next whole unit cannot fit an empty box, pause for a recorded budget decision. The input ceiling remains an operator-approved pilot value. There is **no output reservation in packing**; actual output is monitored separately.
 
-Each child reads its complete claim list and assigned unit files and is the sole writer of one exact output path. Return compact JSONL: one row per assigned unit in order, including empty results; within `links`, one entry per `(unit_id, claim_id)`, no per-unit link cap. Link fields are `claim_id`, `closeness` (high/medium/low), `role_hint` (implements, tests, necessary-support, removes, changes — separate P0 tokens), and a nonempty, single-line verbatim witness from that unit. The pilot witness limit is 160 characters including the diff marker. Outer fields are `unit_id`, `links`, `unresolved` (null or a reason). Links mean "look here", never "this works". Appending is optional; JSONL on disk is mandatory. Verify the exact output path and return only a compact summary/path, not the rows in the coordinator's context.
+Each child reads its complete claim list and assigned unit files and is the sole writer of one exact output path. Return compact JSONL: one row per assigned unit in order, including empty results; within `links`, one entry per `(unit_id, claim_id)`, no per-unit link cap. Link fields are `claim_id`, `closeness` (high/medium/low), `role_hint` (implements, tests, necessary-support, removes, changes — separate P0 tokens), and a nonempty, single-line verbatim witness from that unit that starts at a line boundary with a real diff marker (`+`, `-`, a context space, or `@@ `; file metadata units also accept their recognized metadata prefixes). The pilot witness limit is 160 Unicode code points including the diff marker. Outer fields are `unit_id`, `links`, `unresolved` (null or a reason). Links mean "look here", never "this works". Appending is optional; JSONL on disk is mandatory. Verify the exact output path and return only a compact summary/path, not the rows in the coordinator's context.
 
 **Delegated mechanical boundary (`verify join`).** After the merged candidate is
 prepared but before it is accepted or published, the coordinator spawns a
@@ -253,8 +254,8 @@ and match `workflows/p0/testkit.mjs` `workflowArgs` flag for flag:
 The frame records `verifier.path` repo-relative, so the stage record also records the
 resolved engine checkout directory; the call site never searches for it.
 
-Read back exactly three bounded records — never print or read `pi.stdout.jsonl` whole,
-never a JSONL dump:
+Read back exactly three bounded records on every attempt, including a refusal — never
+print or read `pi.stdout.jsonl` whole, never a JSONL dump:
 
 ```bash
 R=<receipt-dir>/pi.stdout.jsonl

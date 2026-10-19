@@ -3,21 +3,25 @@
 // Source: /workspaces/chunkhound_workspace/store/cure-light-pi-schematic-pr72-s1 (compare to
 // the p0 acceptance store — same run). Input pins prove the pins still describe that store.
 //
-// instruction pins are the **corrected render** of the recorded inputs, captured 2026-10-17
-// during the p0-pack build. The recorded store's own instruction files came from the
-// defective ai068 render: payload lines point at `<store>/units2/…` instead of
-// `<store>/units/units2/…`. The delta is exactly that path fix; claims-list and assignments
-// are byte-identical to the recorded artifacts.
+// instruction pins are the **corrected render** of the recorded inputs. The recorded
+// store's own instruction files came from the defective ai068 render: payload lines point
+// at `<store>/units2/…` instead of `<store>/units/units2/…`. The corrected render applies
+// exactly two transformations: that payload-path fix, and the 2026-10-19 witness-clause
+// fix that adds the line-boundary / diff-marker rule already enforced by p0-close and
+// verify.mjs. The corrected witness clause adds fixed input, so the greedy boundary moves
+// u0293 from box-0004 to box-0005 on the recorded s1 store. Boxes 0-3 are the recorded
+// bytes plus the two fixes; boxes 4-5 are the corrected render for that moved unit set,
+// re-proved by the replay. Claims-list and the first four assignments are byte-identical to
+// the recorded artifacts.
 //
 // Capture command (re-run only with a reviewed reason; rewrites the instruction pins):
 //   none — the pins are not engine output. Provenance is re-proved on every acceptance run by
 //   `workflows/pack/test/acceptance.test.mjs` > "pins are the recorded instruction bytes plus
-//   exactly the payload-path fix". That test reads the recorded store's own
-//   `join/box-*.instructions.md`, replaces every `<source>/units2/` occurrence with
-//   `<source>/units/units2/`, and asserts the sha256 equals the matching pin here. The replay
-//   test then runs the engine on a copy with an empty `join/` (no --allow-overwrite) and
-//   asserts the same 13 hashes. The pins were captured 2026-10-17 under this transformation;
-//   do not rewrite them to match engine output.
+//   exactly the payload-path and witness-clause fixes". That test reads the recorded store's
+//   own `join/box-*.instructions.md`, replaces every `<source>/units2/` occurrence with
+//   `<source>/units/units2/`, replaces the recorded witness sentence with the corrected one,
+//   and asserts the sha256 equals the matching pin here. The replay test then runs the engine
+//   on a copy with an empty `join/` (no --allow-overwrite) and asserts the same 13 hashes.
 
 export const BASELINE_PINS = {
   store: "/workspaces/chunkhound_workspace/store/cure-light-pi-schematic-pr72-s1",
@@ -32,15 +36,15 @@ export const BASELINE_PINS = {
     "box-0001": "e454c5924a2d0751c65c495e0fe639778f123e880d4c2f526039994d83e5dd1d",
     "box-0002": "78373d44cfe7b5e71f8af613a797376a423349e1bce3705f6b47ecbd840b00f1",
     "box-0003": "312583e6c1950d4db5fc1dafaafb03f8c0b748bb3f3a5d9f6e4d6068bcabac39",
-    "box-0004": "c0ee524424384cea56eaa17fb1c07d2459d1eb2419618fff0d818dd5fd46749f",
-    "box-0005": "f754dc7be4316ef62c9efbb2f93db9c81d5d0c601c9edf909583b188cd6ef44f",
+    "box-0004": "194025a67890b4bfd8b01d520b7ed2894d18f6dc76d4b06c080f0c32f5d33dce",
+    "box-0005": "298ac347659544a2b432b7453801663b4e41c72766ca80323a9ffd7138faeb83",
   },
   instructions: {
-    "box-0000": "9e81f2136af68981c10b0e48da2f1fa5675e93a24be9759e175b87ef26d03111",
-    "box-0001": "35f988e98f87dbbb90d385470726a866b46577bad6366afa416d97c71f7a1637",
-    "box-0002": "451faa9268e98538ea5ded81f8bbaa60abc4e113d2f766f02eaaeeb2820a49fc",
-    "box-0003": "8044e243f4a37fc03af0160011f1ac18fafb1b42fb2b98b064fe79bcdcbfe374",
-    "box-0004": "7d0f29eb0f908cc70e1534074b5134e34cdf44c2e635c3ba1ebc46b3107603e5",
-    "box-0005": "c6f98f1a741c2ea1eef3ab9c4d757af9803009f31957654fed1e60f9aaf200a7",
+    "box-0000": "27bb7a70c957d3770749db755d1b3c240c6273101e8db33e19c392318836e4da",
+    "box-0001": "bfc8b06e8fa6f55c6bb99856e4c6a256c517eaf13f0db286bc579f7f54614b76",
+    "box-0002": "c0f2aacaa5325eb44f8f971d80749ca2a9efb1b832244b2b31ab169bf5812e4a",
+    "box-0003": "186403d20da7090abea47e447b2c7b48dbb8a61cbb502d16fd302ad8de2cb8d9",
+    "box-0004": "8337f71dcf1e447f2399a1c32f381cd1c59bc54f856808e4b368e4241807ce2c",
+    "box-0005": "9eb691084ffbc77df542d963177be44913c17d39977f3bc82edd093b1ac02b89",
   },
 };

@@ -137,6 +137,8 @@ function assertPacked(runRoot, { ceiling, boxes, childStore = runRoot }) {
     }
     assert.equal(instr.includes(`${childStore}/units2/`), false, "defect payload path present");
     assert.equal(instr.includes(`Your only write path is: ${childStore}/join/${boxId}.jsonl`), true);
+    assert.ok(instr.includes("starting at a line boundary"), "instruction omits the line-boundary witness rule");
+    assert.ok(instr.includes("<=160 Unicode code points"), "instruction omits the witness length unit");
     assert.equal(instr.at(-1), "\n", "instructions must end with one newline");
 
     const boxInput = Buffer.byteLength(instr, "utf8") + claimsListBytes.length + total;

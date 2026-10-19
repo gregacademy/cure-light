@@ -27,9 +27,10 @@ P0 mechanical chain is `p0-pack` → box fleet → `p0-close` → `verify join`.
 Status: **adopted by the kernel call site** in the uncommitted `mods/p0-pack` worktree.
 `p0-close` is merged. `p0-pack` is not merged or installed. Review-pass verification
 (2026-10-19):
-fast 60/60 overall (p0-pack 43), host 56/56 overall (p0-pack 39), prop 41/41 overall
+fast 61/61 overall (p0-pack 43), host 57/57 overall (p0-pack 39), prop 41/41 overall
 (p0-pack 9), acceptance 3/3 (13 baseline outputs + pin provenance), and compile 4/4 with
-a complete pi-schematic checkout. Rerun the tiers for the current counts. Canonical
+a complete pi-schematic checkout. The corrected witness clause moves u0293 from box-0004
+to box-0005 in the acceptance replay; the pins capture that moved render. Canonical
 compile needs a complete pi-schematic checkout. Set `PI_SCHEMATIC_CHECKOUT` if the
 default checkout lacks `workflow/types.js`; a missing file is an environment failure, not
 a draft failure. Acceptance needs the recorded store: absence fails unless

@@ -8,11 +8,15 @@ semantics: [`prop/PROP-ENGINE.md`](prop/PROP-ENGINE.md).
 Status: **adopted by the kernel call site** in the uncommitted `mods/p0-pack` worktree.
 `p0-close` is merged. `p0-pack` is not merged or installed. Review-pass verification
 (2026-10-19):
-fast 60/60 overall (p0-pack 43), host 56/56 overall (p0-pack 39), prop 41/41 overall
+fast 61/61 overall (p0-pack 43), host 57/57 overall (p0-pack 39), prop 41/41 overall
 (p0-pack 9), acceptance 3/3 (13 baseline outputs + pin provenance), and compile 4/4 with
-a complete pi-schematic checkout. Rerun the tiers for the current counts. Claims-list and all six assignments match the recorded `ai068` artifacts byte for
-byte. The six instructions match the corrected-render pins byte for byte; they differ from
-the recorded files only where payload paths change from `units2` to `units/units2`.
+a complete pi-schematic checkout. Claims-list and the first four assignments match the
+recorded `ai068` artifacts byte for byte. The six instructions match the corrected-render
+pins byte for byte; they differ from the recorded files where payload paths change from
+`units2` to `units/units2` and where the witness rule now states the line-boundary /
+diff-marker requirement already enforced by `p0-close` and `verify join`. The corrected
+fixed input moves u0293 from box-0004 to box-0005; the acceptance replay pins that moved
+render.
 A bounded pre-review run by path on a synthetic store exited `ok` with 0 turns and 2
 checkpoints. A resume run exited `ok`, with `promoted: []` and all targets skipped.
 

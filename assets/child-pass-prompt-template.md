@@ -222,14 +222,17 @@ subject lives; medium = partially related; low = weak. Include every witnessed
 link; no per-unit cap. Never duplicate a (unit_id,claim_id) pair. claim_id must
 exist in the complete supplied claims list. role_hint is implements | tests |
 necessary-support | removes | changes.
-Witness: nonempty verbatim fragment from THIS unit's file, include its diff
-marker, single line, <=160 characters in this pilot; never quote another unit.
-If the unit cuts a block, reason only from bytes present. Use unresolved:null
-when decidable; otherwise a specific reason. Zero links still needs a row with
-links:[]; missing output is not an empty match. No fences or prose in the file.
-Appending is optional. Copy the output path character-for-character and verify
-that exact file exists before reporting success. Return path, units processed,
-links/by-closeness, zero-link units and unresolved units; do not paste JSONL.
+Witness: nonempty verbatim fragment from THIS unit's file, starting at a line
+boundary (payload byte 0 or directly after a newline) with a real diff marker
+(`+`, `-`, a context space, or `@@ `), single line, <=160 Unicode code points in
+this pilot; never quote another unit. File metadata units also accept their
+recognized metadata prefixes. If the unit cuts a block, reason only from bytes
+present. Use unresolved:null when decidable; otherwise a specific reason. Zero
+links still needs a row with links:[]; missing output is not an empty match. No
+fences or prose in the file. Appending is optional. Copy the output path
+character-for-character and verify that exact file exists before reporting
+success. Return path, units processed, links/by-closeness, zero-link units and
+unresolved units; do not paste JSONL.
 ```
 
 P0.5 validates file existence, strict types/fields, every assigned unit exactly

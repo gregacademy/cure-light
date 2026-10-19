@@ -218,8 +218,9 @@ under the real one. Real host runs never happen by default (seconds each).
 Deferred tiers and known gaps:
 
 - The §7 fault matrix is wider than the current fixtures: extra row, zero-link unit,
-  unresolved unit, mid-line / >160-char / multi-line witness, envelope refusal (p05
-  missing `input_ceiling_bytes`), and a 1-box stream.
+  unresolved unit, >160-char / multi-line witness, envelope refusal (p05 missing
+  `input_ceiling_bytes`), and a 1-box stream. A mid-line witness is covered by the
+  `off-line-witness` case.
 - §5 counts 15 outputs, but the baseline stream pins 14: `run-manifest.json.sha256` is
   neither pinned nor asserted yet.
 - Rerun idempotence without a reset is covered by the `resume-never-rewrites-different-bytes`

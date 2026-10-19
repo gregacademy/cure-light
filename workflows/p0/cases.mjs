@@ -53,6 +53,7 @@ const REASON_BY_FAULT = [
   { fault: "row-order", reason: "validation-failed" },
   { fault: "unknown-claim", reason: "validation-failed" },
   { fault: "bad-witness", reason: "validation-failed" },
+  { fault: "off-line-witness", reason: "validation-failed", detail: /not at a line boundary/ },
   { fault: "missing-row", reason: "validation-failed" },
   { fault: "preexisting-draft", reason: "frozen-artifact" },
 ];
@@ -116,7 +117,7 @@ export const P0_CLOSE_CASES = [
     checkId: "artifacts-and-join",
   },
 
-  ...REASON_BY_FAULT.map(({ fault, reason }) => ({
+  ...REASON_BY_FAULT.map(({ fault, reason, detail }) => ({
     id: `fault-${fault}`,
     group: "p0-close",
     title: `refuses ${fault} with ${reason} and leaves the store untouched`,
@@ -126,8 +127,9 @@ export const P0_CLOSE_CASES = [
     expect: { reason },
     hostFlags: HOST_FLAGS,
     purity: { ignore: ["paths"] },
-    check({ runRoot, before }) {
+    check({ result, runRoot, before }) {
       assert.deepEqual(snapshotTree(runRoot), before);
+      if (detail) assert.match(String(result.exit?.detail ?? ""), detail);
       return [`store untouched (${before.length} files)`];
     },
     checkId: "store-untouched",

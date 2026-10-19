@@ -41,8 +41,11 @@ export const FIXED_INPUT_SLACK = 4096;
  *                     + 2 * child-store bytes (write path + claims path)
  *                     + per unit: 22 (line punctuation + "units/units2/") + child-store
  *                       bytes + unit-id bytes + 9 ("uNNNN.txt" basename)
+ *
+ * 2026-10-19: the witness rule gained the line-boundary / diff-marker clause; the template
+ * grew by 188 bytes, so the constant was recalibrated from 1807 to 1995.
  */
-export const PACK_INSTRUCTION_TEMPLATE_BYTES = 1807;
+export const PACK_INSTRUCTION_TEMPLATE_BYTES = 1995;
 /** The three default claims, serialized by p0-pack's Python-compatible writer. */
 export const PACK_CLAIMS_LIST_BYTES = 246;
 export const PACK_UNIT_LINE_BYTES = 22;

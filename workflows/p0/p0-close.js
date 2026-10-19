@@ -494,9 +494,12 @@ return defineWorkflow((workflow) => {
             } else {
               const payload = payloadByUnit.get(row.unit_id);
               const needle = Buffer.from(witness, "utf8");
+              const contained = payload ? payload.indexOf(needle) >= 0 : false;
               const at = payload ? findAtLineBoundary(payload, needle) : -1;
-              if (at < 0) {
+              if (!contained) {
                 if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness not in the payload");
+              } else if (at < 0) {
+                if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness not at a line boundary");
               } else if (!witnessMarkerAllowed(unit, witness)) {
                 if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness without a diff marker");
               }

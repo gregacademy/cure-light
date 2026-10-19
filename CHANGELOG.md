@@ -10,7 +10,8 @@
 - **Lossless verdict capture.** The mechanical-child template and stage-record contract now require the exact stdout bytes (trailing newline) and sha256, exact stderr bytes and sha256, and the numeric exit code; the coordinator persists the bytes and never re-serializes, filters, pretty-prints or compresses the check list. `verification.join` records `{ref, sha256, exit_code, stderr: {ref, sha256}}`.
 - **Envelope generation history.** `workflows/p0/SPEC.md` and the stage-record/report contracts now require bounded `prep.envelope_generations[]` entries for every `--allow-overwrite` generation, with the current marker; the gate report lists every attempt. No envelope schema field is added.
 - **No tool change.** `kernel/tools/verify.mjs` behavior, schemas, CLI and exit codes are unchanged. E5 (three-read receipt rule) is a call-site deviation already covered by the docs and recipe host tests; E7 (repeated witnesses) is sample data, not an engine finding. Both stay unmodified.
-- **Verification:** fast 66/66, prop 41/41, acceptance 3/3 (byte-equal baseline), host 62/62; kernel verifier docs+tests 200/200. Compile tier is blocked locally because the pi-schematic checkout lacks `workflow/types.js` (environment, not this change).
+- **Compile tier.** A test-only `.js`→`.ts` resolve hook (`workflows/testkit/ts-js-loader.mjs`) lets the p0/pack compile tests load pi-schematic's TypeScript workflow compiler directly; no build step or pi package install is required.
+- **Verification:** fast 66/66, prop 41/41, acceptance 3/3 (byte-equal baseline), host 62/62, compile 4/4; kernel verifier docs+tests 200/200.
 
 ### 2026-10-19 — p0-pack host workflow call site (docs + receipt proof)
 

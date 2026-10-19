@@ -15,10 +15,14 @@ import { pathToFileURL } from "node:url";
 import { cleanupTempDirs, tempDir } from "../../../kernel/tools/verify-testkit.mjs";
 import { DRAFT } from "../testkit.mjs";
 
+// Register the `.js` -> `.ts` resolve hook before importing the TypeScript compiler.
+import "../../testkit/ts-js-loader.mjs";
+
 after(cleanupTempDirs);
 
 const CHECKOUT = process.env.PI_SCHEMATIC_CHECKOUT ?? path.join(os.homedir(), ".pi", "agent", "git", "github.com", "chunkhound", "pi-schematic");
 const COMPILE_TS = path.join(CHECKOUT, "workflow", "compile.ts");
+const TYPES_TS = path.join(CHECKOUT, "workflow", "types.ts");
 const draftReady = (t) => {
   if (existsSync(DRAFT)) return true;
   t.skip("draft not implemented yet (red-first); contract tier carries the red signal");
@@ -36,7 +40,7 @@ describe("p0-close compile", () => {
 
   it("compiles canonically with a checkpoint declared", async (t) => {
     if (!draftReady(t)) return;
-    if (!existsSync(COMPILE_TS)) {
+    if (!existsSync(COMPILE_TS) || !existsSync(TYPES_TS)) {
       t.skip(`pi-schematic checkout unavailable at ${CHECKOUT} (set PI_SCHEMATIC_CHECKOUT)`);
       return;
     }

@@ -4,3 +4,7 @@
 scratch/
 __pycache__/
 *.pyc
+
+# Generated fixture trees (browsable stores materialized by
+# workflows/pack/fixtures/generate.mjs; hundreds of KiB — regenerate, never commit).
+workflows/pack/fixtures/generated/

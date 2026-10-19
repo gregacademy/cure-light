@@ -56,7 +56,8 @@ steps (`ai071`/`ai072`) with one deterministic script. It:
   deleted by the script.
 - Checkpoints after the args gate and at the end; runs are bounded with `--workflow-time`
   (ms) plus shell timeouts.
-- **Pipeline call.** The kernel coordinator also calls this workflow headlessly —
+- **Pipeline call.** The kernel coordinator calls this workflow headlessly after the
+  `p0-pack` packing workflow and the P0.4 box fleet —
   `pi --offline --no-session --mode json --print … --workflow-time 420000
   "/workflow <abs>/workflows/p0/p0-close.js <verbatim args>"` — with cwd a writable
   run-scoped directory and the workflow token absolute (never the read-only engine
@@ -75,6 +76,10 @@ Under `--store`:
 - `join/box-*.assignment.json` (≥1, sorted by `box_id`)
 - `join/box-*.instructions.md`
 - `join/box-*.jsonl`
+
+The `claims-list.json`, assignment and instruction files are produced by the
+[`p0-pack` workflow](../pack/README.md). Do not hand-author them; `p0-pack` is the only
+producer and the kernel requires it before P0.4.
 
 Pre-write validation: all assignments share one `input_ceiling_bytes` equal to the flag;
 `output_path`, `units_dir` and `manifest_ref` resolve; a payload file exists for every

@@ -9,7 +9,7 @@ pass. It projects
 `join/claims-list.json` from the claims draft, renders the per-box child instructions, and
 packs whole units greedily by input length into `join/box-<NNNN>.assignment.json`. Its
 outputs are exactly the files `p0-close` already consumes as pinned required inputs, so the
-proposed P0 mechanical chain is `p0-pack` → box fleet → `p0-close` → `verify join`.
+P0 mechanical chain is `p0-pack` → box fleet → `p0-close` → `verify join`.
 
 | Path | Role |
 |---|---|
@@ -22,12 +22,12 @@ proposed P0 mechanical chain is `p0-pack` → box fleet → `p0-close` → `veri
 | `testkit.mjs` | draft path and the canonical invocation |
 | `prop/` | property engine (copy of the p0 engine) + pack catalog/mutations |
 | `prop-run.mjs` | property CLI: `--list`, `--cases`, `--seed`, `--spec`, `--json` |
-| `test/` | the suite: streams, contract (fast), host, prop, acceptance, compile |
+| `test/` | the suite: streams, contract (fast), host + documented-recipe probe, prop, acceptance, compile |
 
-Status: **implementation under review** in the uncommitted `mods/p0-pack` worktree.
-`p0-close` is merged. `p0-pack` is not merged, installed or adopted by the engine.
-Engine call-site adoption is a separate decision. Review-pass verification (2026-10-19):
-fast 60/60 overall (p0-pack 43), host 55/55 overall (p0-pack 38), prop 41/41 overall
+Status: **adopted by the kernel call site** in the uncommitted `mods/p0-pack` worktree.
+`p0-close` is merged. `p0-pack` is not merged or installed. Review-pass verification
+(2026-10-19):
+fast 60/60 overall (p0-pack 43), host 56/56 overall (p0-pack 39), prop 41/41 overall
 (p0-pack 9), acceptance 3/3 (13 baseline outputs + pin provenance), and compile 4/4 with
 a complete pi-schematic checkout. Rerun the tiers for the current counts. Canonical
 compile needs a complete pi-schematic checkout. Set `PI_SCHEMATIC_CHECKOUT` if the

@@ -5,9 +5,9 @@ specs/tests. Read this first, then the build spec of the workflow you are implem
 the harness reference you need.
 
 Semantics stay per-workflow: this file never restates what a workflow must do. `p0-close`
-(`workflows/p0/SPEC.md`) is merged. `p0-pack` (`workflows/pack/SPEC.md`) is under review
-in the uncommitted `mods/p0-pack` worktree. It is not merged, installed or adopted by the
-engine. Engine call-site adoption needs a separate decision.
+(`workflows/p0/SPEC.md`) is merged. `p0-pack` (`workflows/pack/SPEC.md`) is adopted by
+the kernel call site in the uncommitted `mods/p0-pack` worktree, but is not merged or
+installed.
 
 ## Read in this order
 
@@ -71,7 +71,7 @@ The current `node workflows/run.mjs <tier>` output is the authority for counts. 
 | Tier | Review-pass report |
 |---|---|
 | fast | 60/60 pass (testkit 3 + p0-close 14 + p0-pack 43) |
-| host | 55/55 pass (smoke 4 + p0-close 12 + recipe 1 + p0-pack 38) |
+| host | 56/56 pass (smoke 4 + p0-close 13 + p0-pack 39) |
 | prop | 41/41 pass (engine 15 + p0-close 17 + p0-pack 9) |
 | acceptance | 3/3 pass (p0-close 15 outputs; p0-pack 13 outputs + pin provenance) |
 | compile | 4/4 pass with a complete checkout; not guaranteed in the default checkout |

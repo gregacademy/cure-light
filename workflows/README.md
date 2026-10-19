@@ -16,10 +16,10 @@ purity rules. Then the packages:
 | `pack/` | the p0-pack workflow: P0.4 packing bridge — claims-list, assignments, instructions ([`pack/SPEC.md`](pack/SPEC.md)) |
 | `testkit/` | shared host harness: stub host, case runner, real pi CLI driver, smoke cases, CLIs ([`testkit/HOST-HARNESS.md`](testkit/HOST-HARNESS.md)) |
 
-Status: **p0-close is merged**. The `p0-pack` implementation is under review in the
-uncommitted `mods/p0-pack` worktree. It is not merged, installed or adopted by the engine.
-Engine call-site adoption is a separate decision. Review-pass verification (2026-10-19):
-fast 60, host 55, prop 41, acceptance 3, compile 4. Rerun the tiers for the current counts.
+Status: **p0-close is merged**. The `p0-pack` implementation is adopted by the kernel
+call site in the uncommitted `mods/p0-pack` worktree, but is not merged or installed. The
+engine prompts name it as the only P0.4 packer. Review-pass verification (2026-10-19):
+fast 60, host 56, prop 41, acceptance 3, compile 4. Rerun the tiers for the current counts.
 Compile needs a complete pi-schematic checkout: set `PI_SCHEMATIC_CHECKOUT` if the default
 checkout lacks `workflow/types.js`. That missing file is an environment failure, not a
 draft failure.

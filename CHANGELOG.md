@@ -2,6 +2,15 @@
 
 ## Unreleased (working tree)
 
+### 2026-10-19 — p0-pack host workflow call site (docs + receipt proof)
+
+- **Packing moved to a shipped host workflow.** The kernel now names `workflows/pack/p0-pack.js` as the only producer of `join/claims-list.json`, the per-box assignments and the per-box instructions, before any P0.4 child starts. It is hash-pinned engine-side tooling under `workflows/`, shell-only and model-free; there is no hand-packing fallback. Reason `ok` means artifacts promoted, never verified.
+- **Command template + receipt recipe.** `kernel/references/intake-and-scope.md` §0.3 "Packing prep" carries the verbatim invocation (flags rendered from frame values, absolute workflow token, `--workflow-time 720000`), the run-namespace receipt shape (`.tmp/pipeline/p0-pack/<stamp>-<pid>/`), the three bounded `grep … | tail -n 1` reads, and the four-reason routing. `p0-close` remains the next prep stage and consumes the promoted pack outputs.
+- **Fail-closed prerequisite.** `libs/pi-driver/references/requirements-check.md` gains pre-pull row 12: `workflows/pack/p0-pack.js` must be present at the recorded engine revision with a matching sha256; missing or mismatched stops Phase 0. Row 11 still pins `p0-close`.
+- **Stage record.** `libs/pi-driver/references/notebook-plan-contract.md` records the `pack` receipt (`workflow`, `receipt`, `reason`, `evidence_dir`, `claims_list_sha256`, `box_count`, `promoted_count`, `skipped_count`) alongside the existing `prep` receipt; the Phase-0 gate checks both.
+- **Docs:** `kernel/SKILL.md`, `kernel/references/intake-and-scope.md`, `libs/pi-driver/references/requirements-check.md`, `libs/pi-driver/references/notebook-plan-contract.md`, `workflows/pack/{README,SPEC}.md`, `workflows/p0/SPEC.md`, `workflows/README.md`.
+- **Recipe proven on the real host.** `workflows/pack/test/recipe.host.test.mjs` runs the documented command template plus the three bounded reads against one synthetic store and asserts they return the same reason, card and summary the driver observes, and that the two boxes were promoted.
+
 ### 2026-10-16 — p0-close host workflow call site (docs + receipt proof)
 
 - **Call site documented.** The kernel names the `p0-close` host workflow as the producer of the merged join draft, the per-box p05 records and the `run-verification/1` envelope: one shell-only headless `pi` call from the coordinator, no model turn. Artifact *production* moves to shipped, hash-pinned engine-side tooling under `workflows/` (the same class as `chunker.mjs`, never a run-authored script); the acceptance decision stays coordinator-owned and `verify join` stays the sole mechanical boundary. Reason `ok` means artifacts promoted, never verified.

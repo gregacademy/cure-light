@@ -5,10 +5,10 @@ and the purity rules. This file specifies **what** `p0-pack` must do. Host verif
 facts: [`../testkit/HOST-HARNESS.md`](../testkit/HOST-HARNESS.md); generated-input
 semantics: [`prop/PROP-ENGINE.md`](prop/PROP-ENGINE.md).
 
-Status: **implementation under review** in the uncommitted `mods/p0-pack` worktree.
-`p0-close` is merged. `p0-pack` is not merged, installed or adopted by the engine.
-Engine call-site adoption is a separate decision. Review-pass verification (2026-10-19):
-fast 60/60 overall (p0-pack 43), host 55/55 overall (p0-pack 38), prop 41/41 overall
+Status: **adopted by the kernel call site** in the uncommitted `mods/p0-pack` worktree.
+`p0-close` is merged. `p0-pack` is not merged or installed. Review-pass verification
+(2026-10-19):
+fast 60/60 overall (p0-pack 43), host 56/56 overall (p0-pack 39), prop 41/41 overall
 (p0-pack 9), acceptance 3/3 (13 baseline outputs + pin provenance), and compile 4/4 with
 a complete pi-schematic checkout. Rerun the tiers for the current counts. Claims-list and all six assignments match the recorded `ai068` artifacts byte for
 byte. The six instructions match the corrected-render pins byte for byte; they differ from
@@ -30,7 +30,7 @@ required inputs:
   derived from `units_dir` + `basename(unit.file)`.
 
 It is the sibling of `p0-close`: same class (in-repo host tooling under `workflows/`,
-hash-pinned, shell-only, no model turn), same proposed call route (headless `pi` CLI), and
+hash-pinned, shell-only, no model turn), same call route (headless `pi` CLI), and
 the same division of labour — the workflow produces and promotes artifacts; the delegated
 `verify join` boundary and the coordinator's P0.5 gate still decide.
 
@@ -78,9 +78,14 @@ Pi `/workflow` argument template (replace all placeholders with local values):
   deleted by the script.
 - Checkpoints after the args gate and at the end; runs are bounded with `--workflow-time`
   (ms) plus shell timeouts.
-- **Potential pipeline call.** A future coordinator call can use the same hermetic flags
-  as `p0-close` (`--offline --no-session --mode json --print …`), cwd a writable run-scoped
-  directory, workflow token absolute, plus `--workflow-time`. No engine call site exists.
+- **Pipeline call.** The kernel coordinator calls this workflow headlessly before P0.4 —
+  `pi --offline --no-session --mode json --print … --workflow-time 720000
+  "/workflow <abs>/workflows/pack/p0-pack.js <verbatim args>"` — with cwd a writable
+  run-scoped directory and the workflow token absolute. The receipt
+  (`.tmp/pipeline/p0-pack/<stamp>-<pid>/`) is the result. The flag sources, three bounded
+  reads and outcome routing live in [`kernel/references/intake-and-scope.md`](../../kernel/references/intake-and-scope.md)
+  §0.3 "Packing prep", not here. Packing is mandatory for engine revisions that carry this
+  workflow; there is no hand-packing fallback.
 
 ## Required inputs
 
@@ -206,6 +211,7 @@ The build loop is in [`../AUTHORING.md`](../AUTHORING.md) §The builder loop.
 | fast | `workflows/pack/test/streams.test.mjs` | fixture sanity (stream shapes, faults) |
 | fast | `workflows/pack/test/contract.test.mjs` | red-first executable specification: valid packings, refusal faults, allow-overwrite, ceiling and input refusals — the shared case table in `cases.mjs` driven by the stub host |
 | host | `workflows/pack/test/host.test.mjs` | the identical cases + the baseline replay through the real `pi` CLI (`--mode json`); each pure case re-runs and compares result digests |
+| host | `workflows/pack/test/recipe.host.test.mjs` | the documented kernel command + three bounded receipt reads against one synthetic store |
 | acceptance | `workflows/pack/test/acceptance.test.mjs` | corrected-render byte equality against the recorded baseline pins |
 | prop | `workflows/pack/test/prop.test.mjs` | invariants over generated inventories (coverage, greedy boundary, ceiling, resume idempotence) |
 | prop | `workflows/pack/test/prop-engine.prop.test.mjs` | engine self-test of the copied property engine (render determinism, seed replay) |

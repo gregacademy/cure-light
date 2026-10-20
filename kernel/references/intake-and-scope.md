@@ -71,14 +71,15 @@ required stage: the mechanical boundary is the single delegated `verify join`
 run (P0.4), which re-runs this validator internally as a fatal prerequisite.
 When a claims failure needs localization or a per-class receipt, the
 coordinator may spawn a `fast` child to execute the pinned `verify claims --run
-<run-root>` command under the same delegation contract and record the stdout
-JSON verdict verbatim plus exit code/stderr
+<run-root>` command under the same delegation contract and record the exact
+returned stdout/stderr bytes and their sha256, plus the numeric exit code
 ([child-pass-prompt-template.md](../../assets/child-pass-prompt-template.md)).
 The child verifies the frame-recorded verifier path/sha256 first; the coordinator
 consumes the verdict and never re-implements, overrides or reruns the checks
-itself. This validates the recorded envelope slice and the draft's structure,
-pins and references — never claim semantics. A missing/degenerate `fast` pauses;
-a recorded diagnostic never gates acceptance.
+itself. The diagnostic requires the current pinned `run-manifest.json` and
+becomes available after p0-close preparation; it validates the recorded envelope
+slice and the draft's structure, pins and references — never claim semantics. A
+missing/degenerate `fast` pauses; a recorded diagnostic never gates acceptance.
 
 ## 0.3 Chunk units, propose links, check the sweep
 
@@ -86,6 +87,7 @@ a recorded diagnostic never gates acceptance.
 P0.1 source capture (verbatim bytes + sha256 refs)
   → P0.2 claims pass (#fast; claims-draft/3 + source-consistency)
   → P0.3 shipped chunker (units manifest + whole-unit payloads)
+  → p0-pack prep (host workflow; shell-only, no model turn; promotes claims-list + assignments + instructions)
   → P0.4 join pass (#fast; compact per-box join JSONL attempt — row shape P0.4)
     → p0-close prep (host workflow; shell-only, no model turn; promotes join-draft + p05 + envelope)
     → bind the prep receipt's envelope sha256
@@ -114,21 +116,86 @@ failure may be localized by spawning a `fast` child to execute the pinned
 validates the manifest identity, the recorded chunker recipe/pins and the
 payload bytes (pins, byte lengths, counts, bounds and diff framing) against the
 recorded evidence slice; it never executes the chunker or git and never
-re-derives the unit inventory. A recorded diagnostic never gates acceptance.
+re-derives the unit inventory. The diagnostic requires the current pinned
+`run-manifest.json` and becomes available after p0-close preparation. A recorded
+diagnostic never gates acceptance.
 
-**Preflight before packing P0.4 (recommended, non-gating).** After P0.2 (and
-after P0.3), the recommended preflight is to run the pinned `verify claims` /
-`verify units` diagnostic through a delegated `fast` child before packing boxes:
-a nonzero result localizes the exact fingerprint while the producing context is
-still available for repair, avoiding a failed `verify join` round. It never
-gates by itself — the single delegated `verify join` remains the acceptance
-predicate, and a missing diagnostic stops nothing.
+**Post-prep diagnostics before the join boundary (recommended, non-gating).**
+After p0-close prepares the envelope, and before or after a failed `verify join`,
+the recommended diagnostic is to run the pinned `verify claims` / `verify units`
+diagnostic through a delegated `fast` child: it localizes claims/units failures
+separately while the producing context is still available for repair, and it can
+avoid a failed join round. It cannot run before p0-close; it never gates — the
+single delegated `verify join` remains the acceptance predicate, and a missing
+diagnostic stops nothing.
 
 ### P0.4 Join pass (`#fast`)
 
-Pack boxes by **input length only**: instructions + the full claim-ID/statement list + whole units in manifest order until the next unit no longer fits. Charge fixed input first; never trim the claims, split a unit across children, or add a unit-count cap. If fixed input or the next whole unit cannot fit an empty box, pause for a recorded budget decision. The input ceiling remains an operator-approved pilot value. There is **no output reservation in packing**; actual output is monitored separately.
+**Packing prep (host workflow).** The claims list and the per-box assignments/instructions are
+produced by the shipped engine host tool `workflows/pack/p0-pack.js` — hash-pinned
+engine-side tooling under `workflows/`, never a run-authored script. The coordinator runs it
+headlessly, with no model turn, before any P0.4 child starts; the receipt is the result. Call
+conditions: the P0.2 claims draft and P0.3 units manifest/payloads are durable;
+`pilot.input_ceiling_bytes` and `pilot.operator_ref` are recorded in the sealed plan; and the
+run root holds the `workflows/pack/SPEC.md` §Required inputs. No hand-packing, no
+coordinator-authored assignment or instruction files.
 
-Each child reads its complete claim list and assigned unit files and is the sole writer of one exact output path. Return compact JSONL: one row per assigned unit in order, including empty results; within `links`, one entry per `(unit_id, claim_id)`, no per-unit link cap. Link fields are `claim_id`, `closeness` (high/medium/low), `role_hint` (implements, tests, necessary-support, removes, changes — separate P0 tokens), and a nonempty, single-line verbatim witness from that unit. The pilot witness limit is 160 characters including the diff marker. Outer fields are `unit_id`, `links`, `unresolved` (null or a reason). Links mean "look here", never "this works". Appending is optional; JSONL on disk is mandatory. Verify the exact output path and return only a compact summary/path, not the rows in the coordinator's context.
+Fix the receipt path before the call, so one attempt has exactly one receipt. Hermetic host
+flags, an absolute workflow token, `--workflow-time 720000` (covers staging and promotion)
+and a cwd that is writable and run-scoped — never the read-only engine checkout:
+
+```bash
+cd <run-namespace-parent>
+pi --offline --no-session --mode json --print \
+   --no-mcp --no-skills --no-prompt-templates --no-context-files \
+   --workflow-time 720000 \
+   "/workflow <abs>/workflows/pack/p0-pack.js <verbatim args>" \
+   > <receipt-dir>/pi.stdout.jsonl 2> <receipt-dir>/pi.stderr
+```
+
+The receipt dir is `<run-namespace-parent>/.tmp/pipeline/p0-pack/<UTCstamp>-<pid>/` holding
+`pi.stdout.jsonl`, `pi.stderr` and `invocation.json`; it stays outside the `--store` root.
+Render every flag from a frame/stage-record field — no defaults, nothing re-derived from disk
+at the call site — and match `workflows/pack/testkit.mjs` `packArgs` flag for flag:
+
+| Flag | Source field |
+|---|---|
+| `--store` | the state's run root (absolute) |
+| `--input-ceiling-bytes` | frame `pilot.input_ceiling_bytes` |
+| `--run-id` | frame `run` (`<owner>/<repo>#<pr>`) |
+| `--review-state` | frame review state (`s<n>`) |
+| `--base-oid` / `--subject-oid` | frame `base_oid` / `subject_oid` |
+| `--child-store` | absent; defaults to `--store` |
+| `--allow-overwrite` | absent on the first pass; present only in a recorded repair attempt and only before any P0.4 child writes |
+
+Read back exactly three bounded records on every attempt, including a refusal — never
+print or read `pi.stdout.jsonl` whole:
+
+```bash
+R=<receipt-dir>/pi.stdout.jsonl
+grep '"customType":"workflow-exit"'    "$R" | tail -n 1   # {reason, metadata}
+grep '"customType":"workflow-log"'     "$R" | tail -n 1   # the ≤20-line card
+grep '"customType":"workflow-summary"' "$R" | tail -n 1   # cost / time / counts
+```
+
+Outcome mapping:
+
+| Workflow reason | Meaning in the pipeline | Route |
+|---|---|---|
+| `ok` | claims-list, assignments and instructions are promoted; nothing verified | record the `pack` receipt, then dispatch the box fleet from the assignment files |
+| `needs-input` | a frame/store fact is missing or disagrees | pause: fix the recorded fact; never hand-pack to bypass |
+| `frozen-artifact` | an existing target or stale box differs | pause; a recorded rewrite decision, then an `--allow-overwrite` repair only if no child output exists |
+| `evidence-failed` | helper, scan or promotion failure | repair the store/evidence, re-run; stop if repeated |
+
+After `ok`, the store holds `join/claims-list.json`, `join/box-<NNNN>.assignment.json` and
+`join/box-<NNNN>.instructions.md`. Dispatch the box fleet exactly as the assignment files
+specify. Do not re-pack after any P0.4 child writes: a later pack would change inputs under
+the children. A re-pack needs a fresh store / new review state or an explicit operator
+decision.
+
+Packing contract (enforced by `p0-pack`): pack boxes by **input length only**: instructions + the full claim-ID/statement list + whole units in manifest order until the next unit no longer fits. Charge fixed input first; never trim the claims, split a unit across children, or add a unit-count cap. If fixed input or the next whole unit cannot fit an empty box, pause for a recorded budget decision. The input ceiling remains an operator-approved pilot value. There is **no output reservation in packing**; actual output is monitored separately.
+
+Each child reads its complete claim list and assigned unit files and is the sole writer of one exact output path. Return compact JSONL: one row per assigned unit in order, including empty results; within `links`, one entry per `(unit_id, claim_id)`, no per-unit link cap. Link fields are `claim_id`, `closeness` (high/medium/low), `role_hint` (implements, tests, necessary-support, removes, changes — separate P0 tokens), and a nonempty, single-line verbatim witness from that unit that starts at a line boundary with a real diff marker (`+`, `-`, a context space, or `@@ `; file metadata units also accept their recognized metadata prefixes). The pilot witness limit is 160 Unicode code points including the diff marker. Outer fields are `unit_id`, `links`, `unresolved` (null or a reason). Links mean "look here", never "this works". Appending is optional; JSONL on disk is mandatory. Verify the exact output path and return only a compact summary/path, not the rows in the coordinator's context.
 
 **Delegated mechanical boundary (`verify join`).** After the merged candidate is
 prepared but before it is accepted or published, the coordinator spawns a
@@ -148,10 +215,11 @@ tool `workflows/p0/p0-close.js` — hash-pinned engine-side tooling under `workf
 the same class as `chunker.mjs`, never a run-authored script (so the prohibition on a
 run-authored script substituting for verification does not apply to it). The coordinator
 runs it headlessly, with no model turn, from a writable run-scoped directory; the receipt
-is the result. All three call-site boundary conditions must hold before the call: every
-P0.4 child is terminal with its JSONL durable (a later append invalidates the prep —
-re-run and re-delegate, never reuse a stale merge), `pilot.input_ceiling_bytes` and
-`pilot.operator_ref` are recorded in the sealed plan, and the run root holds the
+is the result. It consumes the pack outputs; it is not a packing fallback. All three
+call-site boundary conditions must hold before the call: every P0.4 child is terminal with
+its JSONL durable (a later append invalidates the prep — re-run and re-delegate, never
+reuse a stale merge), `pilot.input_ceiling_bytes` and `pilot.operator_ref` are recorded in
+the sealed plan, and the run root holds the
 `SPEC.md` §Required inputs.
 
 Fix the receipt path before the call, so one attempt has exactly one receipt. Hermetic
@@ -190,8 +258,8 @@ and match `workflows/p0/testkit.mjs` `workflowArgs` flag for flag:
 The frame records `verifier.path` repo-relative, so the stage record also records the
 resolved engine checkout directory; the call site never searches for it.
 
-Read back exactly three bounded records — never print or read `pi.stdout.jsonl` whole,
-never a JSONL dump:
+Read back exactly three bounded records on every attempt, including a refusal — never
+print or read `pi.stdout.jsonl` whole, never a JSONL dump:
 
 ```bash
 R=<receipt-dir>/pi.stdout.jsonl
@@ -361,9 +429,10 @@ coordinator still materializes those semantic records.
 
 The mechanical checks shipped in `kernel/tools/verify.mjs` run in the delegated
 `fast` child (child-pass-prompt-template.md); the **merge decision remains
-coordinator behavior** — artifact *production* (the merged candidate, the p05
-records, the envelope) belongs to the p0-close prep workflow, and the decision is
-made from its promoted artifacts plus the delegated verdict. The coordinator consumes the fast-child pinned
+coordinator behavior** — packing production (the claims list, assignments and
+instructions) belongs to the p0-pack prep workflow; merge production (the merged
+candidate, the p05 records, the envelope) belongs to the p0-close prep workflow;
+and the decision is made from their promoted artifacts plus the delegated verdict. The coordinator consumes the fast-child pinned
 mechanical verdict — never re-implementing, overriding or rerunning the checks
 in its own context — and confirms it covers the expected path and exact
 assigned-unit sweep; strict row types and required fields; one row per unit and
@@ -402,7 +471,7 @@ The split compile asserts **Vector 1 coverage** — a verdict owner for every ca
 
 - **Plan gate (pre-pull).** Before Phase 0 mutates anything external, surface the compiled plan for confirmation: subject mechanism (chhound sandbox | plain worktree) and planned location, vectors, splits, groups, the fleet policy (per-vector groups, the at-most-two-facets-per-child cap with recorded exceptions, and the depth-budget units from §0.3b), gates, output policy. The planned research mode (chhound-rail when the sandbox rail is planned, else direct-tree — pipeline-model.md) is part of the plan. The frame carries **no tree fields yet** — `subject_path` / `subject_oid` cannot exist before the pull (subject-first, §0.1).
 - **Phase 0 gate (post-pull).** One gate with three sub-checklists:
-      - **Artifact validity** — the written verbatim `contract-<owner>-<pr>-s<n>` page (or the prescribed `CONTRACT.md` disk fallback) exists at `contract_ref`, is readable and matches it; the source capture identities; the shipped chunker path/sha256/recipe bound to `cure_light_source_head_oid`; the state's claims-draft, units-manifest and join-draft refs/hashes; the prep receipt ref/sha256 (`prep.receipt`) with the workflow pin and the resolved engine checkout dir, proving those three artifacts were produced under the recorded engine revision; and the current delegated `verify join` verdict (ref, sha256, exit code) pinned to those exact input refs/hashes with the frame-recorded verifier pin; a stale, missing or nonzero join verdict stops the mechanical boundary. Optional `verify claims`/`verify units` diagnostic verdicts may be recorded in the same shape when run, and never gate. The single join verdict re-runs the claims and units validators internally as fatal prerequisites, so it proves recorded artifact mechanics for all three artifact classes — not claim semantics or review readiness. Check P0.5 evidence against expected assignments and disclose retry/resplit failures, incomplete sources and hard cases. Missing or stale artifacts never authorize complete coverage; pause or record the operator-approved limited scope. No installed claim plugin, canonical claim-ID permission or census gate is required. The gate does not finalize UNCLAIMED or establish `review_basis: ready`; those remain V1 responsibilities.
+      - **Artifact validity** — the written verbatim `contract-<owner>-<pr>-s<n>` page (or the prescribed `CONTRACT.md` disk fallback) exists at `contract_ref`, is readable and matches it; the source capture identities; the shipped chunker path/sha256/recipe bound to `cure_light_source_head_oid`; the state's claims-draft, units-manifest and join-draft refs/hashes; the pack receipt ref/sha256 (`pack.receipt`) with the `workflows/pack/p0-pack.js` pin, the resolved engine checkout dir, and the produced claims-list/assignment/instruction refs/hashes; the prep receipt ref/sha256 (`prep.receipt`) with the `workflows/p0/p0-close.js` pin, proving the join-draft, p05 and envelope were produced under the recorded engine revision; and the current delegated `verify join` verdict (ref, sha256, exit code) pinned to those exact input refs/hashes with the frame-recorded verifier pin; a stale, missing or nonzero join verdict stops the mechanical boundary. The gate report lists every prep attempt and envelope generation and marks the current one; only the current envelope binds the delegated verdict. Optional `verify claims`/`verify units` diagnostic verdicts may be recorded in the same shape when run, and never gate. The single join verdict re-runs the claims and units validators internally as fatal prerequisites, so it proves recorded artifact mechanics for all three artifact classes — not claim semantics or review readiness. Check P0.5 evidence against expected assignments and disclose retry/resplit failures, incomplete sources and hard cases. Missing or stale artifacts never authorize complete coverage; pause or record the operator-approved limited scope. No installed claim plugin, canonical claim-ID permission or census gate is required. The gate does not finalize UNCLAIMED or establish `review_basis: ready`; those remain V1 responsibilities.
       - **Plan reality** — surface the manifest with the recorded reality: actual `subject_path` / `subject_oid`, `base_oid`, changed-file list from the pulled tree, unit/file/line-split counts, P0.5 expected/received rows and link counts, zero-link claims, candidate_unclaimed units and unresolved hard cases and the exclusion policy (evidence-linked classes — a path suffix alone is never sufficient), the V1 `fleet_plan` (shard → group → owned claims/units → depth budget) for approval or recorded amendment, coverage-page location and budgets it approves, deferred requirements-row outcomes, fallback notes — a chhound-rail fallback (rail confirmed but sandbox pull/connect failed) also flips `research.mode` to `direct-tree` and `ch_prefix` to `none` (pipeline-model.md), so children render Variant B, never a rail variant whose tools are not connected.
       - **Repair + continuation** — the P0.2 `source_consistency` outcome (clean or recorded non-material inconsistency) and the independent `repair_required` record (`required`, `records`, `continuation`); missing designation/orientation is a clean-consistency + `required: true` case. A `required: true` record defaults the run to **pause before Vector 1**: the operator requests author clarification/repair, or records an explicit disposition in `repair_required.continuation` — a named, bounded `evidence-only-v1` or `limited-v1-only` mode with scope and operator ref (recorded scope/rationale/state) — that does not clear the defect or authorize ordinary downstream work. Thinness is judged across all explicitly designated, capturable sources — not PR-body length: a terse body with an accurate pointer to a complete designated package can pass; reviewer-invented claims are never an option. The repair-pause default applies to any `repair_required` defect (missing designation/orientation included), not just contradictions: the operator requests author repair, runs an explicitly limited V1-only review, or stops. Both pre-V1 continuations (the evidence-only run and the limited V1-only review) are named, bounded and recorded, and neither clears the defect nor authorizes ordinary downstream work. Contract-only repair is a new review state even when no code work is pulled (subject rule above; closure-verification.md). The run proceeds to Vector 1 only after this gate.
 
@@ -424,9 +493,10 @@ chunker: {path: kernel/tools/chunker.mjs, sha256, recipe: {target_bytes: 4096, c
 claims_draft: {ref, sha256, schema_version: claims-draft/3}   # run-scoped proposal; V1 validates/freezes against captured sources
 units_manifest: {ref, sha256, schema_version: code-units-sim/3}   # current emitted schema (always /3; /2 is refused); inventory order + payload refs + opaque occurrence/skip/coverage records, not unique changed-line counts
 join_draft: {ref, sha256, schema_version: join-draft/1}   # P0.4 leads merged only after P0.5; candidate_unclaimed is not a final accounting state
-prep: {workflow: {path, sha256}, receipt: {ref, sha256}, reason, evidence_dir, envelope_sha, summary: {cost, duration_ms, units, links}}   # p0-close host workflow (engine-side, hash-pinned) + the receipt it wrote; `reason: ok` means artifacts promoted, never verified; `envelope_sha` is bound before the delegated `verify join`; record the resolved engine checkout dir alongside the workflow pin (the frame's `verifier.path` is repo-relative)
+pack: {workflow: {path, sha256}, receipt: {ref, sha256}, reason, evidence_dir, claims_list_sha256, box_count, promoted_count, skipped_count}   # p0-pack host workflow + the receipt it wrote; `reason: ok` means claims-list/assignments/instructions promoted, never verified; record the resolved engine checkout dir alongside the workflow pin
+prep: {workflow: {path, sha256}, receipt: {ref, sha256}, reason, evidence_dir, envelope_sha, envelope_generations: [{receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}], summary: {cost, duration_ms, units, links}}   # p0-close host workflow (engine-side, hash-pinned) + the receipt it wrote; `reason: ok` means artifacts promoted, never verified; `envelope_sha` is the current pin bound before the delegated `verify join`; `envelope_generations[]` records every `--allow-overwrite` generation with its current marker; record the resolved engine checkout dir alongside the workflow pin (the frame's `verifier.path` is repo-relative)
 verifier: {path: kernel/tools/verify.mjs, sha256, tool_version: 1.0.0}   # pinned mechanical verifier; same cure_light_source_head_oid engine source as the chunker
-verification: {join: {ref, sha256, exit_code}}   # the single delegated fast-child `verify join` verdict bound to the exact input refs/hashes above is the mechanical boundary; stale/missing/nonzero stops. Optional `claims`/`units` diagnostic verdicts (same shape) may be recorded when run and never gate
+verification: {join: {ref, sha256, exit_code, stderr: {ref, sha256}}}   # the single delegated fast-child `verify join` verdict bound to the exact input refs/hashes above is the mechanical boundary; `ref`/`sha256` pin the exact stdout bytes (never a re-serialized or compressed projection), `stderr` pins the exact stderr bytes, and `exit_code` is numeric; stale/missing/nonzero stops. Optional `claims`/`units` diagnostic verdicts (same shape) may be recorded when run and never gate
 run_envelope: {ref: run-manifest.json, sha256, schema_version: run-verification/1}   # recorded-input projection (verifier/capture/claims/units/join pins + pilot policy); never a gate engine
 pilot: {operator_ref, input_ceiling_bytes, witness_max_chars: 160, retry_limit: 1, resplit: halves, max_resplit_depth: 1, output_ceiling_bytes: null, approval: {ref, sha256}}   # approved policy recorded in the envelope; approval is recorded whenever --approval is supplied and is required for partial-coverage runs; a missing input ceiling fails closed
 source_consistency: {status: clean | recorded-inconsistency, records_ref}   # P0.2 comparison outcome only; missing designation/orientation records repair_required without an inconsistency

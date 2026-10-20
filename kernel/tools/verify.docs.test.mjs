@@ -291,6 +291,26 @@ describe("docs contract — child prompt template (verifier block)", () => {
     has(CHILD_TEMPLATE, "missing_source_candidates[{resource,affected_claim_ids,reference_quote,why_it_matters}]", "candidates profile");
   });
 
+  it("makes the two implicit P0.2 shape rules explicit (E3)", () => {
+    for (const phrase of [
+      "optional `notes` (one nonempty string, never an array)",
+      "Every `missing_source_candidates[].affected_claim_ids` entry must be a distinct ID from `claims[].id`, never a nonclaim or another record ID",
+      "See `artifact-contracts.md §2` for the canonical field/repair contract",
+    ]) has(CHILD_TEMPLATE, phrase, `P0.2 shape guardrail phrase ${phrase}`);
+    has(ARTIFACT_CONTRACTS, "Every `affected_claim_ids` entry is a `claims[].id`; a nonclaim or duplicate fails `claims.candidates`", "candidate claim-only contract sentence");
+  });
+
+  it("requires lossless stdout/stderr capture from the mechanical verification child (E4)", () => {
+    for (const phrase of [
+      "returns the exact stdout JSON bytes (including trailing newline) and their sha256",
+      "the exact stderr bytes and their sha256, and the numeric exit code",
+      "persists the returned stdout bytes as the verdict artifact and pins their sha256",
+      "never re-serializes, filters, pretty-prints or compresses the check list",
+      "never substitutes a summary for the bytes",
+      "a missing, truncated or hash-mismatched capture fails the mechanical gate; record stderr and the exit code separately",
+    ]) has(CHILD_TEMPLATE, phrase, `mechanical capture phrase ${phrase}`);
+  });
+
   it("uses the separate P0.4 removes/changes role tokens", () => {
     has(CHILD_TEMPLATE, "necessary-support | removes | changes", "separate removes/changes tokens");
     lacks(CHILD_TEMPLATE, /remove[s]?\/changes/, "slash-drift removes/changes token");
@@ -308,6 +328,35 @@ describe("docs contract — intake-and-scope (P0 delegation + pinned verifier)",
     has(INTAKE, "Optional claims diagnostic (`verify claims`)", "claims diagnostic");
     has(INTAKE, "Optional units diagnostic (`verify units`)", "units diagnostic");
     has(INTAKE, "never gates acceptance", "diagnostics never gate");
+  });
+
+  it("documents the post-prep envelope requirement for claims/units diagnostics (E2)", () => {
+    has(INTAKE, "The diagnostic requires the current pinned `run-manifest.json` and becomes available after p0-close preparation", "claims diagnostic envelope requirement");
+    has(INTAKE, "Post-prep diagnostics before the join boundary (recommended, non-gating)", "post-prep diagnostic heading");
+    has(INTAKE, "It cannot run before p0-close; it never gates", "post-prep timing and non-gating rule");
+    has(INTAKE, "it localizes claims/units failures separately", "separate localization clause");
+    has(ARTIFACT_CONTRACTS, "Claims and units diagnostics require the current `run-manifest.json`; their stage slices are absent until p0-close generation, and neither is a pre-pack preflight", "artifact-contracts envelope-precondition sentence");
+  });
+
+  it("documents lossless verdict capture and every envelope generation (E4/E6)", () => {
+    for (const phrase of [
+      "`ref`/`sha256` pin the exact stdout bytes (never a re-serialized or compressed projection), `stderr` pins the exact stderr bytes, and `exit_code` is numeric",
+      "envelope_generations: [{receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}]",
+      "The gate report lists every prep attempt and envelope generation and marks the current one; only the current envelope binds the delegated verdict",
+    ]) has(INTAKE, phrase, `stage-record capture phrase ${phrase}`);
+    for (const phrase of [
+      "the `verification.join` capture `{ref, sha256, exit_code, stderr: {ref, sha256}}` pins the exact stdout/stderr bytes",
+      "envelope_generations[] {receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}",
+    ]) has(NOTEBOOK_CONTRACT, phrase, `notebook stage-record capture phrase ${phrase}`);
+    has(ARTIFACT_CONTRACTS, "`run-verification/1` is the current projection only; generation history lives in `prep.envelope_generations[]`, not in the envelope", "current-envelope projection rule");
+  });
+
+  it("reports every prep attempt and envelope generation in the P0 SPEC (E6)", () => {
+    for (const phrase of [
+      "each `--allow-overwrite` repair writes a new envelope in its own evidence directory",
+      "`prep.envelope_generations[]` entry `{receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}`",
+      "`prep.envelope_sha` remains the current pin",
+    ]) has("workflows/p0/SPEC.md", phrase, `P0 SPEC generation phrase ${phrase}`);
   });
 
   it("flows P0.5 as the coordinator semantic gate consuming the fast-child pinned verdict", () => {
@@ -363,7 +412,7 @@ describe("docs contract — intake-and-scope (P0 delegation + pinned verifier)",
   });
 
   it("keeps a join-only manifest healthy (diagnostics optional) and fails closed on join (R1/R2/R4)", () => {
-    has(INTAKE, "verification: {join: {ref, sha256, exit_code}}", "join-only manifest record");
+    has(INTAKE, "verification: {join: {ref, sha256, exit_code, stderr: {ref, sha256}}}", "join-only manifest record");
     has(INTAKE, "Optional `claims`/`units` diagnostic verdicts", "diagnostics recorded optionally");
     has(INTAKE, "a stale, missing or nonzero join verdict stops the mechanical boundary", "fail-closed join verdict");
     lacks(INTAKE, /verification: \{claims: \{ref, sha256, exit_code\}, units: \{ref, sha256, exit_code\}, join: \{ref, sha256, exit_code\}\}/, "three-verdict manifest record");
@@ -371,7 +420,7 @@ describe("docs contract — intake-and-scope (P0 delegation + pinned verifier)",
 
   it("adds the verifier pin, verdict records, envelope ref/hash and approved policy to the output manifest", () => {
     has(INTAKE, "verifier: {path: kernel/tools/verify.mjs, sha256, tool_version: 1.0.0}", "verifier pin line");
-    has(INTAKE, "verification: {join: {ref, sha256, exit_code}}", "join verdict record line");
+    has(INTAKE, "verification: {join: {ref, sha256, exit_code, stderr: {ref, sha256}}}", "join verdict record line");
     has(INTAKE, "run_envelope: {ref: run-manifest.json, sha256, schema_version: run-verification/1}", "envelope line");
     has(INTAKE, "pilot: {operator_ref, input_ceiling_bytes, witness_max_chars: 160", "pilot policy line");
   });
@@ -1151,6 +1200,7 @@ describe("docs contract — artifact contracts S2 follow-up (boxes[], source_con
 
     const cases = [
       ["notes empty", (c) => { c.source_consistency.notes = ""; }, "shape", "invalid field: /source_consistency/notes expected nonempty string"],
+      ["notes array", (c) => { c.source_consistency.notes = []; }, "shape", "invalid field: /source_consistency/notes expected nonempty string"],
       ["record id empty", (c) => { c.source_consistency.records[0].id = ""; }, "shape", "invalid field: /source_consistency/records/0/id expected nonempty string"],
       ["status wrong type", (c) => { c.source_consistency.status = 42; }, "shape", "invalid field: /source_consistency/status expected nonempty string"],
       ["records wrong type", (c) => { c.source_consistency.records = {}; }, "shape", "invalid field: /source_consistency/records expected array"],
@@ -1306,13 +1356,14 @@ describe("docs contract — artifact contracts S2 follow-up (assignment / claims
     }
   });
 
-  it("documents the authoring preflights: locator completeness, derived assignment fields, coarse fingerprints, P0.4 preflight", () => {
+  it("documents the authoring preflights: locator completeness, derived assignment fields, coarse fingerprints, post-prep diagnostics", () => {
     has(ARTIFACT_CONTRACTS, "Locator completeness", "capture locator completeness rule");
     has(ARTIFACT_CONTRACTS, "source ref not captured", "capture-side source-ref fingerprint");
     has(ARTIFACT_CONTRACTS, "units_dir == dirname(manifest_ref)", "derived units_dir equality");
     has(ARTIFACT_CONTRACTS, "coarse fingerprint", "coarse join.assignments fingerprint note");
     has(CHILD_TEMPLATE, "never edit the capture manifest yourself", "claims-child capture-manifest read-only rule");
-    has(INTAKE, "Preflight before packing P0.4", "P0.4 preflight recommendation");
+    has(INTAKE, "Post-prep diagnostics before the join boundary (recommended, non-gating)", "post-prep diagnostic recommendation");
+    lacks(INTAKE, /Preflight before packing P0\.4/, "impossible pre-pack claims/units preflight");
   });
 
   it("drives the real envelope generator across the documented assignment refusal order", () => {

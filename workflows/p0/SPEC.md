@@ -56,7 +56,8 @@ steps (`ai071`/`ai072`) with one deterministic script. It:
   deleted by the script.
 - Checkpoints after the args gate and at the end; runs are bounded with `--workflow-time`
   (ms) plus shell timeouts.
-- **Pipeline call.** The kernel coordinator also calls this workflow headlessly —
+- **Pipeline call.** The kernel coordinator calls this workflow headlessly after the
+  `p0-pack` packing workflow and the P0.4 box fleet —
   `pi --offline --no-session --mode json --print … --workflow-time 420000
   "/workflow <abs>/workflows/p0/p0-close.js <verbatim args>"` — with cwd a writable
   run-scoped directory and the workflow token absolute (never the read-only engine
@@ -75,6 +76,10 @@ Under `--store`:
 - `join/box-*.assignment.json` (≥1, sorted by `box_id`)
 - `join/box-*.instructions.md`
 - `join/box-*.jsonl`
+
+The `claims-list.json`, assignment and instruction files are produced by the
+[`p0-pack` workflow](../pack/README.md). Do not hand-author them; `p0-pack` is the only
+producer and the kernel requires it before P0.4.
 
 Pre-write validation: all assignments share one `input_ceiling_bytes` equal to the flag;
 `output_path`, `units_dir` and `manifest_ref` resolve; a payload file exists for every
@@ -213,8 +218,9 @@ under the real one. Real host runs never happen by default (seconds each).
 Deferred tiers and known gaps:
 
 - The §7 fault matrix is wider than the current fixtures: extra row, zero-link unit,
-  unresolved unit, mid-line / >160-char / multi-line witness, envelope refusal (p05
-  missing `input_ceiling_bytes`), and a 1-box stream.
+  unresolved unit, >160-char / multi-line witness, envelope refusal (p05 missing
+  `input_ceiling_bytes`), and a 1-box stream. A mid-line witness is covered by the
+  `off-line-witness` case.
 - §5 counts 15 outputs, but the baseline stream pins 14: `run-manifest.json.sha256` is
   neither pinned nor asserted yet.
 - Rerun idempotence without a reset is covered by the `resume-never-rewrites-different-bytes`
@@ -256,4 +262,7 @@ Deferred tiers and known gaps:
   manifest order (`{unit_id, links: [], unresolved: null}`), empty when there are none.
 - Overwrite policy: resolved — staging-compare (promote absent-or-byte-equal, refuse only a
   differing target), `join/join-draft.v1.json` and `run-manifest.json` frozen;
-  repairs pass `--allow-overwrite` and are recorded as new envelope generations.
+  each `--allow-overwrite` repair writes a new envelope in its own evidence
+  directory, and the coordinator records a bounded `prep.envelope_generations[]`
+  entry `{receipt_ref, receipt_sha256, envelope_sha256, reason, repair, current}`
+  in the stage record; `prep.envelope_sha` remains the current pin.

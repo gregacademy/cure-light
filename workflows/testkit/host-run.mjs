@@ -22,6 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SMOKE_CASES } from "./cases.mjs";
 import { P0_CLOSE_BASELINE_CASE, P0_CLOSE_CASES } from "../p0/cases.mjs";
+import { PACK_BASELINE_CASE, PACK_CASES } from "../pack/cases.mjs";
 import { runCase, summarizeReports } from "./casekit.mjs";
 import { hostInvocation, HOST_FLAGS } from "./hostdriver.mjs";
 
@@ -32,6 +33,7 @@ const REPO = path.resolve(HERE, "..", "..");
 const CASE_GROUPS = {
   smoke: SMOKE_CASES,
   "p0-close": [...P0_CLOSE_CASES, P0_CLOSE_BASELINE_CASE],
+  "p0-pack": [...PACK_CASES, PACK_BASELINE_CASE],
 };
 
 const allCases = () => Object.values(CASE_GROUPS).flat();

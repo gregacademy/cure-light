@@ -75,6 +75,7 @@ export const FAULT_NAMES = [
   "row-order",
   "unknown-claim",
   "bad-witness",
+  "off-line-witness",
   "missing-row",
   "preexisting-draft",
 ];
@@ -108,6 +109,33 @@ const FAULTS = {
     if (!row) throw new Error("fixture has no links");
     row.links[0].witness = "workflow-fixture-absent-witness";
     writeBoxRows(runRoot, BOX_0000, rows);
+  },
+  "off-line-witness"(runRoot) {
+    const rows = readBoxRows(runRoot, BOX_0000);
+    const atLineBoundary = (payload, needle) => {
+      for (let i = payload.indexOf(needle); i !== -1; i = payload.indexOf(needle, i + 1)) {
+        if (i === 0 || payload[i - 1] === 0x0a) return true;
+      }
+      return false;
+    };
+    for (const row of rows) {
+      const payload = readBytes(runRoot, `units/units2/${row.unit_id}.txt`);
+      for (const link of row.links) {
+        const witness = link.witness;
+        if (typeof witness !== "string" || witness.length < 2) continue;
+        const candidate = witness.startsWith("@@ ")
+          ? witness.slice(3)
+          : (witness[0] === "+" || witness[0] === "-" || witness[0] === " " ? witness.slice(1) : null);
+        if (candidate === null) continue;
+        const needle = Buffer.from(candidate, "utf8");
+        if (payload.indexOf(needle) < 0) continue;
+        if (atLineBoundary(payload, needle)) continue;
+        link.witness = candidate;
+        writeBoxRows(runRoot, BOX_0000, rows);
+        return;
+      }
+    }
+    throw new Error("fixture has no marker-prefixed witness that shifts off a line boundary");
   },
   "missing-row"(runRoot) {
     const rows = readBoxRows(runRoot, BOX_0000);

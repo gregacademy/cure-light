@@ -73,32 +73,97 @@ return defineWorkflow((workflow) => {
     return payload;
   };
 
+  // Quote-aware tokenizer for the raw `args` string: single quotes are literal, double
+  // quotes and unquoted text take backslash escapes, and an unterminated quote or trailing
+  // escape is a malformed argument string (refused, never guessed).
+  const tokenize = (text) => {
+    const words = [];
+    let current = "";
+    let started = false;
+    let quoted = "";
+    for (let i = 0; i < text.length; i++) {
+      const ch = text.charAt(i);
+      if (quoted === "'") {
+        if (ch === "'") quoted = "";
+        else current += ch;
+        continue;
+      }
+      if (quoted === '"') {
+        if (ch === '"') quoted = "";
+        else if (ch === "\\") {
+          if (i + 1 >= text.length) return null;
+          i += 1;
+          current += text.charAt(i);
+        } else current += ch;
+        continue;
+      }
+      if (ch === "'" || ch === '"') {
+        quoted = ch;
+        started = true;
+        continue;
+      }
+      if (ch === "\\") {
+        if (i + 1 >= text.length) return null;
+        i += 1;
+        current += text.charAt(i);
+        started = true;
+        continue;
+      }
+      if (/\s/.test(ch)) {
+        if (started) {
+          words.push(current);
+          current = "";
+          started = false;
+        }
+        continue;
+      }
+      current += ch;
+      started = true;
+    }
+    if (quoted !== "") return null;
+    if (started) words.push(current);
+    return words;
+  };
+
   // ---------------------------------------------------------------------------------------
   // Arg gate — unknown or missing flags refuse before any shell effect (SPEC step 0).
   // ---------------------------------------------------------------------------------------
-  const rawArgs = typeof load("args") === "string" ? load("args").trim() : "";
-  const tokens = rawArgs === "" ? [] : rawArgs.split(/\s+/);
+  const rawArgs = typeof load("args") === "string" ? load("args") : "";
+  const tokens = rawArgs.trim() === "" ? [] : tokenize(rawArgs);
+  if (tokens === null) {
+    return workflow.exit(refuse("needs-input", { detail: "the argument string has an unterminated quote or escape" }));
+  }
   const values = new Map();
   let allowOverwrite = false;
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens.at(i);
     let name = token;
     let value = "";
+    let hasValue = false;
     const eq = token.indexOf("=");
     if (token.indexOf("--") === 0 && eq > 0) {
       name = token.slice(0, eq);
       value = token.slice(eq + 1);
+      hasValue = true;
     }
-    if (name === "--allow-overwrite" && value === "") {
+    if (name === "--allow-overwrite") {
+      if (hasValue || (i + 1 < tokens.length && tokens.at(i + 1).indexOf("--") !== 0)) {
+        return workflow.exit(refuse("needs-input", { detail: "--allow-overwrite accepts no value" }));
+      }
       allowOverwrite = true;
       continue;
     }
     if (VALUE_FLAGS.indexOf(name) < 0) return workflow.exit(refuse("needs-input", { detail: "unknown flag: " + clip(name, 80) }));
-    if (value === "") {
+    if (hasValue && value === "") {
+      return workflow.exit(refuse("needs-input", { detail: "flag value is empty: " + clip(name, 80) }));
+    }
+    if (!hasValue) {
       i += 1;
       if (i >= tokens.length) return workflow.exit(refuse("needs-input", { detail: "flag has no value: " + clip(name, 80) }));
       value = tokens.at(i);
+      if (value === "") return workflow.exit(refuse("needs-input", { detail: "flag value is empty: " + clip(name, 80) }));
     }
+    if (values.has(name)) return workflow.exit(refuse("needs-input", { detail: "duplicate flag: " + clip(name, 80) }));
     values.set(name, value);
   }
   for (const name of VALUE_FLAGS) {
@@ -494,9 +559,12 @@ return defineWorkflow((workflow) => {
             } else {
               const payload = payloadByUnit.get(row.unit_id);
               const needle = Buffer.from(witness, "utf8");
+              const contained = payload ? payload.indexOf(needle) >= 0 : false;
               const at = payload ? findAtLineBoundary(payload, needle) : -1;
-              if (at < 0) {
+              if (!contained) {
                 if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness not in the payload");
+              } else if (at < 0) {
+                if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness not at a line boundary");
               } else if (!witnessMarkerAllowed(unit, witness)) {
                 if (errors.length < MAX_ERRORS) errors.push(box.boxId + ": unit " + row.unit_id + " has a witness without a diff marker");
               }

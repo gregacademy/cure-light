@@ -53,6 +53,7 @@ const REASON_BY_FAULT = [
   { fault: "row-order", reason: "validation-failed" },
   { fault: "unknown-claim", reason: "validation-failed" },
   { fault: "bad-witness", reason: "validation-failed" },
+  { fault: "off-line-witness", reason: "validation-failed", detail: /not at a line boundary/ },
   { fault: "missing-row", reason: "validation-failed" },
   { fault: "preexisting-draft", reason: "frozen-artifact" },
 ];
@@ -116,7 +117,97 @@ export const P0_CLOSE_CASES = [
     checkId: "artifacts-and-join",
   },
 
-  ...REASON_BY_FAULT.map(({ fault, reason }) => ({
+  {
+    id: "quoted-canonical-args",
+    group: "p0-close",
+    title: "strips shell quotes from canonical arguments byte-exactly",
+    workflow: DRAFT,
+    prepare: synthetic("valid"),
+    args: (runRoot) => workflowArgs(runRoot, { operatorRef: "operator:Sample O'Brien/pr85" }),
+    expect: { reason: "ok" },
+    hostFlags: HOST_FLAGS,
+    purity: { ignore: ["paths"] },
+    check({ runRoot }) {
+      const envelope = readJson(runRoot, "run-manifest.json");
+      assert.equal(envelope.pilot.operator_ref, "operator:Sample O'Brien/pr85");
+      return ["quoted operator_ref preserved byte-exactly"];
+    },
+    checkId: "quoted-args",
+  },
+
+  {
+    id: "empty-equals-flag",
+    group: "p0-close",
+    title: "refuses an explicit empty flag value and leaves the store untouched",
+    workflow: DRAFT,
+    prepare: synthetic("valid"),
+    args: (runRoot) => workflowArgs(runRoot, { argsOverride: (canonical) => `${canonical} --review-state=` }),
+    expect: { reason: "needs-input" },
+    hostFlags: HOST_FLAGS,
+    purity: { ignore: ["paths"] },
+    check({ result, runRoot, before }) {
+      assert.equal(result.exit?.detail, "flag value is empty: --review-state");
+      assert.deepEqual(snapshotTree(runRoot), before);
+      return ["store untouched"];
+    },
+    checkId: "store-untouched",
+  },
+
+  {
+    id: "empty-quoted-flag",
+    group: "p0-close",
+    title: "refuses an empty quoted flag value and leaves the store untouched",
+    workflow: DRAFT,
+    prepare: synthetic("valid"),
+    args: (runRoot) => workflowArgs(runRoot, { argsOverride: (canonical) => `${canonical} --operator-ref ''` }),
+    expect: { reason: "needs-input" },
+    hostFlags: HOST_FLAGS,
+    purity: { ignore: ["paths"] },
+    check({ result, runRoot, before }) {
+      assert.equal(result.exit?.detail, "flag value is empty: --operator-ref");
+      assert.deepEqual(snapshotTree(runRoot), before);
+      return ["store untouched"];
+    },
+    checkId: "store-untouched",
+  },
+
+  {
+    id: "unterminated-quoted-flag",
+    group: "p0-close",
+    title: "refuses an unterminated quoted argument and leaves the store untouched",
+    workflow: DRAFT,
+    prepare: synthetic("valid"),
+    args: (runRoot) => workflowArgs(runRoot, { argsOverride: (canonical) => `${canonical} --operator-ref 'unterminated` }),
+    expect: { reason: "needs-input" },
+    hostFlags: HOST_FLAGS,
+    purity: { ignore: ["paths"] },
+    check({ result, runRoot, before }) {
+      assert.equal(result.exit?.detail, "the argument string has an unterminated quote or escape");
+      assert.deepEqual(snapshotTree(runRoot), before);
+      return ["store untouched"];
+    },
+    checkId: "store-untouched",
+  },
+
+  {
+    id: "duplicate-flag",
+    group: "p0-close",
+    title: "refuses a duplicate flag and leaves the store untouched",
+    workflow: DRAFT,
+    prepare: synthetic("valid"),
+    args: (runRoot) => workflowArgs(runRoot, { argsOverride: (canonical) => `${canonical} --store /tmp/other` }),
+    expect: { reason: "needs-input" },
+    hostFlags: HOST_FLAGS,
+    purity: { ignore: ["paths"] },
+    check({ result, runRoot, before }) {
+      assert.equal(result.exit?.detail, "duplicate flag: --store");
+      assert.deepEqual(snapshotTree(runRoot), before);
+      return ["store untouched"];
+    },
+    checkId: "store-untouched",
+  },
+
+  ...REASON_BY_FAULT.map(({ fault, reason, detail }) => ({
     id: `fault-${fault}`,
     group: "p0-close",
     title: `refuses ${fault} with ${reason} and leaves the store untouched`,
@@ -126,8 +217,9 @@ export const P0_CLOSE_CASES = [
     expect: { reason },
     hostFlags: HOST_FLAGS,
     purity: { ignore: ["paths"] },
-    check({ runRoot, before }) {
+    check({ result, runRoot, before }) {
       assert.deepEqual(snapshotTree(runRoot), before);
+      if (detail) assert.match(String(result.exit?.detail ?? ""), detail);
       return [`store untouched (${before.length} files)`];
     },
     checkId: "store-untouched",

@@ -6,32 +6,40 @@ pi-schematic `/workflow` author contract. Host tooling: `kernel/` and the pinned
 acceptance boundary.
 
 Start here: [`AUTHORING.md`](AUTHORING.md) — the builder loop, the test surfaces and the
-purity rules. Then the two packages:
+purity rules. Then the packages:
 
 | Path | Role |
 |---|---|
 | `AUTHORING.md` | catchall entry point for anyone building under `workflows/` |
 | `run.mjs` | tier runner: `fast \| acceptance \| compile \| host \| prop \| all` |
-| `p0/` | the p0-close workflow: build spec, fixtures, cases, property engine, tests ([`p0/README.md`](p0/README.md)) |
+| `p0/` | the p0-close workflow: merge/validate/p05/envelope ([`p0/SPEC.md`](p0/SPEC.md)) |
+| `pack/` | the p0-pack workflow: P0.4 packing bridge — claims-list, assignments, instructions ([`pack/SPEC.md`](pack/SPEC.md)) |
 | `testkit/` | shared host harness: stub host, case runner, real pi CLI driver, smoke cases, CLIs ([`testkit/HOST-HARNESS.md`](testkit/HOST-HARNESS.md)) |
 
-Status: **construction started 2026-10-15**, red-first. `workflows/p0/p0-close.js` does not
-exist yet; the p0-close tests are expected to fail until it lands.
+Status: **p0-close is merged**. The `p0-pack` implementation is adopted by the kernel
+call site in the uncommitted `mods/p0-pack` worktree, but is not merged or installed. The
+engine prompts name it as the only P0.4 packer. Review-pass verification (2026-10-19):
+fast 60, host 56, prop 41, acceptance 3, compile 4. Rerun the tiers for the current counts.
+Compile needs a complete pi-schematic checkout: set `PI_SCHEMATIC_CHECKOUT` if the default
+checkout lacks `workflow/types.js`. That missing file is an environment failure, not a
+draft failure.
 
 Proposals this follows (workspace root, outside this repo):
 
 - `cure-light-p0-close-workflow-proposal.md` — merge/validate/p05 + envelope
-- `cure-light-records-workflow-proposal.md` — stage/state-head page write + read-back
+- `cure-light-records-workflow-proposal.md` — stage/state-head page write + read-back (not built; host invocation gap)
 
 ## Test tiers
 
+Run these commands from the cure-light repo root.
+
 | Tier | Runs | Role |
 |---|---|---|
-| fast (default) | `testkit/`, `p0/test/` without a tier token | fixture sanity, stub-host self-test, red-first contracts |
+| fast (default) | `testkit/`, `p0/test/`, `pack/test/` without a tier token | fixture sanity, stub-host self-test, sealed contracts |
 | host | `*.host.test.mjs` | the same cases through the real pi CLI + purity reruns |
 | prop | `*.prop.test.mjs` | generated-input properties over mutation programs |
-| acceptance | `*.acceptance.test.mjs` | frozen-baseline byte equality on a scratch copy |
-| compile | `*.compile.test.mjs` | `node --check` + canonical compile |
+| acceptance | `*.acceptance.test.mjs` | frozen-baseline byte equality on a scratch copy; baseline required unless `P0_PACK_ACCEPTANCE_OPTIONAL=1` |
+| compile | `*.compile.test.mjs` | `node --check` + canonical compile with a complete pi-schematic checkout |
 
 ```bash
 node workflows/run.mjs             # fast (default) — the build loop

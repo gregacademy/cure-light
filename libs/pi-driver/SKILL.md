@@ -37,6 +37,10 @@ Follow `kernel/references/context-loading.md` for the operator-approved `context
 
 Use the higher/current approved level for semantic blocks: source designation, consistency/freeze judgment, V1 attribution/review basis, V2/V3 reconciliation, confirmation disputes, and final wording. A supported lower level is only for mechanical preparation. Restore the approved level before every semantic block and record each switch. If switching is unsupported, retain the approved level or delegate mechanical preparation; never a silent model/group substitution. Fleet and confirmation groups are unchanged. This is a pilot: if prompts/turns cannot switch, skip it and report no saving; retained transcript reasoning is not removed.
 
+## Optional fleet-manifest transport
+
+For disk-backed fleet manifests, use the optional [bounded reader](references/fleet-manifest.md) rather than reading the whole JSON through a display-capped tool. It returns a hash-bound index or one complete lane, and HOLDs on overflow. Fetch the executable at the recorded engine source, hash it to disk, and retain only its path/hash in context. Its result is transport evidence, never semantic readiness or dispatch approval; existing fleet gates and group bindings still apply.
+
 ## Durability note (mirrors PhormOS)
 
 The notebook advertises replay convenience, not a durability claim. The run frame and findings survive turns/compaction/handoff in the same pi installation; a fresh machine with no notebook history starts a new run (the manifest's subject OID in the stage records is the continuity anchor, not the notebook).

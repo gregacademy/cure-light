@@ -8,8 +8,9 @@
 //   node workflows/run.mjs prop        # generated-input properties (QuickCheck-style)
 //   node workflows/run.mjs all
 //
-// Test files live in three packages: workflows/testkit/ (harness and engine self-tests),
-// workflows/p0/test/ (the p0-close suite) and workflows/pack/test/ (the p0-pack suite). Tiers
+// Test files live in workflows/testkit/ (harness and engine self-tests),
+// workflows/p0/test/ (p0-close), workflows/pack/test/ (p0-pack), and
+// libs/pi-driver/test/ (optional runtime transport adapters). Tiers
 // are selected by the tier token at the end of the filename (`.../host.test.mjs` and
 // `.../smoke.host.test.mjs` both count); every other *.test.mjs is fast. The repo has no
 // package.json, so this script is the single place that knows the tier globs and the
@@ -21,7 +22,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const TEST_DIRS = [path.join(HERE, "testkit"), path.join(HERE, "p0", "test"), path.join(HERE, "pack", "test")];
+const TEST_DIRS = [
+  path.join(HERE, "testkit"), path.join(HERE, "p0", "test"), path.join(HERE, "pack", "test"),
+  path.join(HERE, "..", "libs", "pi-driver", "test"),
+];
 const ALL = TEST_DIRS.flatMap((dir) =>
   readdirSync(dir)
     .filter((name) => name.endsWith(".test.mjs"))

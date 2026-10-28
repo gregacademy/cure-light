@@ -41,7 +41,8 @@ cure-light/
 │   └── tools/verify.mjs      ← pinned mechanical verifier (kernel/tools/verify.mjs; claims|units|join)
 ├── libs/pi-driver/           ← pi binding (notebook + handoff + model-groups)
 │   ├── SKILL.md
-│   └── references/           ← requirements-check, notebook-plan-contract
+│   ├── references/           ← requirements-check, notebook-plan-contract, fleet-manifest
+│   └── tools/fleet-manifest.mjs ← optional bounded fleet-manifest reader
 ├── workflows/                ← in-repo mechanical workflows
 │   ├── AUTHORING.md          ← entry point: authoring the drafts, specs and tests
 │   ├── run.mjs               ← tier runner (fast | host | prop | acceptance | compile)
@@ -95,6 +96,10 @@ Fall back (git/rg, plain worktree) or **stop before
 fleet cost** when a hard requirement fails — and a missing or degenerate
 required group pauses that stage rather than substituting. The review never
 spends a fleet on an unverified subject.
+
+## Optional fleet-manifest reader
+
+The pi driver includes an optional [bounded fleet-manifest reader](libs/pi-driver/references/fleet-manifest.md). It parses hash-pinned source bytes on disk and returns only a bounded index or one complete lane. Overflow is HOLD, not truncation. No install or extra remote-boot prerequisite is added; the reader grants no review or dispatch approval.
 
 ## Why the notebook + handoff
 

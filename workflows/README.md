@@ -35,7 +35,7 @@ Run these commands from the cure-light repo root.
 
 | Tier | Runs | Role |
 |---|---|---|
-| fast (default) | `testkit/`, `p0/test/`, `pack/test/` without a tier token | fixture sanity, stub-host self-test, sealed contracts |
+| fast (default) | `testkit/`, `p0/test/`, `pack/test/`, `../libs/pi-driver/test/` without a tier token | fixture sanity, stub-host self-test, sealed contracts, bounded fleet transport |
 | host | `*.host.test.mjs` | the same cases through the real pi CLI + purity reruns |
 | prop | `*.prop.test.mjs` | generated-input properties over mutation programs |
 | acceptance | `*.acceptance.test.mjs` | frozen-baseline byte equality on a scratch copy; baseline required unless `P0_PACK_ACCEPTANCE_OPTIONAL=1` |
